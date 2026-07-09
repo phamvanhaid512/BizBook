@@ -1,0 +1,496 @@
+.product-page {
+  padding: 28px;
+  min-height: 100vh;
+  background: #f5f7fb;
+  color: #1f2937;
+}
+
+.product-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+  margin-bottom: 24px;
+}
+
+.product-header h1 {
+  margin: 0;
+  font-size: 30px;
+  font-weight: 800;
+  color: #111827;
+}
+
+.product-header p {
+  margin-top: 6px;
+  color: #6b7280;
+  font-size: 15px;
+}
+
+.add-product-btn {
+  border: none;
+  padding: 13px 20px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #2563eb, #4f46e5);
+  color: white;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 12px 25px rgba(37, 99, 235, 0.28);
+  transition: 0.25s;
+}
+
+.add-product-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 16px 30px rgba(37, 99, 235, 0.36);
+}
+
+.product-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 18px;
+  margin-bottom: 22px;
+}
+
+.stat-card {
+  padding: 22px;
+  border-radius: 20px;
+  background: white;
+  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.07);
+  border: 1px solid #eef2f7;
+}
+
+.stat-card span {
+  display: block;
+  color: #6b7280;
+  font-size: 14px;
+  margin-bottom: 10px;
+}
+
+.stat-card strong {
+  font-size: 30px;
+  font-weight: 800;
+}
+
+.stat-card.blue strong {
+  color: #2563eb;
+}
+
+.stat-card.green strong {
+  color: #16a34a;
+}
+
+.stat-card.red strong {
+  color: #dc2626;
+}
+
+.product-toolbar {
+  display: flex;
+  gap: 14px;
+  margin-bottom: 20px;
+}
+
+.product-toolbar input,
+.product-toolbar select {
+  height: 46px;
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  padding: 0 15px;
+  background: white;
+  outline: none;
+  font-size: 14px;
+  transition: 0.2s;
+}
+
+.product-toolbar input {
+  flex: 1;
+}
+
+.product-toolbar input:focus,
+.product-toolbar select:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12);
+}
+
+.product-table-card {
+  background: white;
+  border-radius: 22px;
+  overflow: hidden;
+  box-shadow: 0 14px 35px rgba(15, 23, 42, 0.08);
+  border: 1px solid #eef2f7;
+}
+
+.product-table-card table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.product-table-card thead {
+  background: #f8fafc;
+}
+
+.product-table-card th {
+  padding: 16px;
+  text-align: left;
+  font-size: 13px;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.product-table-card td {
+  padding: 17px 16px;
+  border-top: 1px solid #f1f5f9;
+  font-size: 14px;
+  vertical-align: middle;
+}
+
+.product-table-card tbody tr {
+  transition: 0.2s;
+}
+
+.product-table-card tbody tr:hover {
+  background: #f8fbff;
+}
+
+.product-info-cell {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.product-avatar {
+  width: 42px;
+  height: 42px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #dbeafe, #e0e7ff);
+  color: #2563eb;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.product-info-cell strong {
+  display: block;
+  color: #111827;
+  margin-bottom: 3px;
+}
+
+.product-info-cell p {
+  margin: 0;
+  color: #9ca3af;
+  font-size: 13px;
+}
+
+.price-cell {
+  font-weight: 800;
+  color: #0f766e;
+}
+
+.status-badge {
+  display: inline-flex;
+  padding: 7px 12px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.status-badge.active {
+  color: #15803d;
+  background: #dcfce7;
+}
+
+.status-badge.inactive {
+  color: #b91c1c;
+  background: #fee2e2;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.action-buttons button,
+.modal-actions button,
+.pagination-right button {
+  border: none;
+  border-radius: 11px;
+  padding: 9px 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.edit-btn {
+  background: #eff6ff;
+  color: #2563eb;
+}
+
+.edit-btn:hover {
+  background: #2563eb;
+  color: white;
+}
+
+.delete-btn {
+  background: #fef2f2;
+  color: #dc2626;
+}
+
+.delete-btn:hover {
+  background: #dc2626;
+  color: white;
+}
+
+.empty-table {
+  text-align: center;
+  color: #9ca3af;
+  padding: 35px !important;
+}
+
+.pagination-box {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 18px;
+  padding: 18px;
+  border-top: 1px solid #f1f5f9;
+  background: #fbfdff;
+}
+
+.pagination-left {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  color: #64748b;
+  font-size: 14px;
+}
+
+.pagination-info strong,
+.pagination-page strong {
+  color: #111827;
+}
+
+.pagination-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.pagination-right select {
+  height: 38px;
+  border: 1px solid #e5e7eb;
+  border-radius: 11px;
+  padding: 0 10px;
+  background: white;
+  outline: none;
+}
+
+.pagination-right button {
+  background: white;
+  color: #374151;
+  border: 1px solid #e5e7eb;
+}
+
+.pagination-right button:hover:not(:disabled),
+.pagination-right .active-page {
+  background: #2563eb;
+  color: white;
+  border-color: #2563eb;
+}
+
+.pagination-right button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.55);
+  backdrop-filter: blur(5px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 18px;
+  z-index: 999;
+}
+
+.product-modal,
+.delete-modal {
+  width: 100%;
+  max-width: 520px;
+  background: white;
+  border-radius: 22px;
+  padding: 24px;
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.25);
+  animation: modalShow 0.25s ease;
+}
+
+.product-modal h2,
+.delete-modal h2 {
+  margin: 0 0 18px;
+  color: #111827;
+}
+
+.product-modal form {
+  display: flex;
+  flex-direction: column;
+  gap: 11px;
+}
+
+.product-modal label {
+  font-size: 14px;
+  font-weight: 700;
+  color: #374151;
+}
+
+.product-modal input,
+.product-modal textarea,
+.product-modal select {
+  border: 1px solid #e5e7eb;
+  border-radius: 13px;
+  padding: 12px 14px;
+  outline: none;
+  font-size: 14px;
+}
+
+.product-modal textarea {
+  min-height: 90px;
+  resize: vertical;
+}
+
+.product-modal input:focus,
+.product-modal textarea:focus,
+.product-modal select:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12);
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.modal-actions button:first-child {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.modal-actions button:first-child:hover {
+  background: #e5e7eb;
+}
+
+.modal-actions button[type="submit"] {
+  background: #2563eb;
+  color: white;
+}
+
+.modal-actions button[type="submit"]:hover {
+  background: #1d4ed8;
+}
+
+.delete-modal p {
+  color: #4b5563;
+  line-height: 1.6;
+}
+
+@keyframes modalShow {
+  from {
+    opacity: 0;
+    transform: translateY(15px) scale(0.97);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@media (max-width: 1024px) {
+  .product-page {
+    padding: 22px;
+  }
+
+  .product-stat-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .product-table-card {
+    overflow-x: auto;
+  }
+
+  .product-table-card table {
+    min-width: 850px;
+  }
+}
+
+@media (max-width: 768px) {
+  .product-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .add-product-btn {
+    width: 100%;
+  }
+
+  .product-stat-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .product-toolbar {
+    flex-direction: column;
+  }
+
+  .pagination-box {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .pagination-right {
+    width: 100%;
+  }
+
+  .pagination-right select {
+    width: 100%;
+  }
+
+  .product-modal,
+  .delete-modal {
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+}
+
+@media (max-width: 480px) {
+  .product-page {
+    padding: 16px;
+  }
+
+  .product-header h1 {
+    font-size: 24px;
+  }
+
+  .stat-card {
+    padding: 18px;
+  }
+
+  .stat-card strong {
+    font-size: 25px;
+  }
+
+  .action-buttons {
+    flex-direction: column;
+  }
+
+  .modal-actions {
+    flex-direction: column-reverse;
+  }
+
+  .modal-actions button {
+    width: 100%;
+  }
+}

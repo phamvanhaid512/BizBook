@@ -1,0 +1,89 @@
+.print-qr-page {
+    padding: 24px;
+    background: #f5f7fb;
+    min-height: 100vh;
+}
+
+.print-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.print-header h2 {
+    margin: 0;
+    color: #111827;
+}
+
+.print-header p {
+    margin: 6px 0 0;
+    color: #6b7280;
+}
+
+.print-header button {
+    border: none;
+    background: #2563eb;
+    color: white;
+    padding: 12px 18px;
+    border-radius: 10px;
+    cursor: pointer;
+}
+
+.qr-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 18px;
+}
+
+.qr-card {
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 16px;
+    padding: 20px;
+    text-align: center;
+}
+
+.qr-card h3 {
+    margin: 0 0 12px;
+    font-size: 22px;
+    color: #111827;
+}
+
+.qr-card img {
+    width: 220px;
+    height: 220px;
+    object-fit: contain;
+}
+
+.qr-note {
+    margin-top: 12px;
+    color: #374151;
+    font-size: 14px;
+}
+
+.no-qr {
+    color: #dc2626;
+    font-weight: bold;
+}
+
+@media print {
+    .print-header button {
+        display: none;
+    }
+
+    .print-qr-page {
+        background: white;
+        padding: 0;
+    }
+
+    .qr-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 12px;
+    }
+
+    .qr-card {
+        page-break-inside: avoid;
+        border: 1px solid #000;
+    }
+}

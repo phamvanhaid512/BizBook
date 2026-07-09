@@ -1,0 +1,17 @@
+.admin-layout {
+  display: flex;
+  min-height: 100vh;
+  background: #f1f5f9;
+}
+
+.admin-main {
+  flex: 1;
+  min-width: 0;
+}
+
+/* iPhone */
+@media (max-width: 768px) {
+  .admin-layout {
+    flex-direction: column;
+  }
+}

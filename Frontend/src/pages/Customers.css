@@ -1,0 +1,217 @@
+.customer-page {
+  padding: 36px;
+  background: #f6f8fb;
+  min-height: 100vh;
+}
+
+.customer-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.customer-header h1 {
+  margin: 0;
+  font-size: 42px;
+  color: #111827;
+}
+
+.customer-header p {
+  margin-top: 8px;
+  color: #6b7280;
+}
+
+.add-customer-btn {
+  border: none;
+  background: linear-gradient(135deg, #7c3aed, #5b21b6);
+  color: white;
+  padding: 14px 20px;
+  border-radius: 14px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.customer-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 18px;
+  margin-bottom: 22px;
+}
+
+.customer-stat-card {
+  background: white;
+  padding: 22px;
+  border-radius: 20px;
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.06);
+}
+
+.customer-stat-card.blue { border-left: 5px solid #2563eb; }
+.customer-stat-card.green { border-left: 5px solid #16a34a; }
+.customer-stat-card.purple { border-left: 5px solid #7c3aed; }
+
+.customer-stat-card span {
+  color: #6b7280;
+  font-size: 14px;
+}
+
+.customer-stat-card strong {
+  display: block;
+  margin-top: 10px;
+  font-size: 32px;
+  color: #111827;
+}
+
+.customer-toolbar {
+  margin-bottom: 22px;
+}
+
+.customer-toolbar input {
+  width: 100%;
+  height: 48px;
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  padding: 0 16px;
+  outline: none;
+}
+
+.customer-table-card {
+  background: white;
+  border-radius: 22px;
+  box-shadow: 0 16px 36px rgba(15, 23, 42, 0.08);
+  overflow: hidden;
+}
+
+.customer-info-cell {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.customer-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 16px;
+  background: #ede9fe;
+  color: #7c3aed;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 900;
+  font-size: 20px;
+}
+
+.customer-info-cell p {
+  margin: 4px 0 0;
+  color: #9ca3af;
+  font-size: 13px;
+}
+
+.customer-status {
+  padding: 7px 12px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.customer-status.active {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.customer-status.inactive {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.customer-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.customer-modal {
+  width: 100%;
+  max-width: 680px;
+  background: white;
+  border-radius: 24px;
+  overflow: hidden;
+}
+
+.customer-form {
+  padding: 26px;
+}
+
+@media (max-width: 900px) {
+  .customer-page {
+    padding: 20px;
+  }
+
+  .customer-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+
+  .customer-stat-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .customer-table-card {
+    overflow-x: auto;
+  }
+
+  table {
+    min-width: 850px;
+  }
+}
+
+.action-buttons {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.action-buttons button {
+    border: none;
+    outline: none;
+    cursor: pointer;
+    padding: 10px 18px;
+    border-radius: 12px;
+    font-size: 14px;
+    font-weight: 600;
+    transition: all .25s ease;
+}
+
+/* Nút sửa */
+
+.edit-btn {
+    background: #eff6ff;
+    color: #2563eb;
+    border: 1px solid #bfdbfe;
+}
+
+.edit-btn:hover {
+    background: #2563eb;
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(37,99,235,.25);
+}
+
+/* Nút xóa */
+
+.delete-btn {
+    background: #fef2f2;
+    color: #dc2626;
+    border: 1px solid #fecaca;
+}
+
+.delete-btn:hover {
+    background: #dc2626;
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(220,38,38,.25);
+}
+
+.action-buttons button:active {
+    transform: scale(.95);
+}
