@@ -238,7 +238,8 @@ class OrderService(BaseService):
 
     def update_payment_status(self, id, payment_status):
         order = self._repository.get_by_id(id)
-
+        print("payment_status",payment_status)
+        print("order",order)
         if not order:
             return {
                 "success": False,
@@ -246,16 +247,19 @@ class OrderService(BaseService):
                 "data": None
             }
 
-        valid_payment_status = ["UNPAID", "PAID"]
+        valid_payment_status = {"UNPAID", "PAID"}
+        print("valid_payment_status",valid_payment_status)
 
-        if payment_status not in valid_payment_status:
+        if payment_status["payment_status"] not in valid_payment_status:
             return {
                 "success": False,
                 "message": "Trạng thái thanh toán không hợp lệ",
                 "data": None
             }
 
-        order.payment_status = payment_status
+        order.payment_status = payment_status["payment_status"]
+        print("order.payment_status",order.payment_status)
+
         order.save()
 
         return {
