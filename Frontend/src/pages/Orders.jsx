@@ -120,7 +120,23 @@ function Orders() {
       try {
         const data = JSON.parse(event.data);
         console.log("Realtime update received for order:", data);
-        loadOrders();
+        if (data && data.status) {
+        // 1. Cập nhật danh sách đơn hàng (nếu có state orders)
+        setOrders((prevOrders) =>
+          prevOrders.map((order) =>
+            order.id === selectedOrder.id ? { ...order, status: data.status } : order
+          )
+        );
+
+        // 2. Cập nhật đơn hàng đang chọn (chỉ cập nhật nếu status thực sự khác để tránh loop)
+        setSelectedOrder((prev) => {
+          if (prev && prev.status !== data.status) {
+            return { ...prev, status: data.status };
+          }
+          return prev;
+        });
+      }
+        // loadOrders();
       } catch (error) {
         console.error("Error parsing WebSocket message:", error);
       }
@@ -152,10 +168,10 @@ function Orders() {
       toast.success("Cập nhật trạng thái đơn hàng thành công");
 
       const updatedOrders = orders.map((order) =>
-        order.id === selectedOrder.order_code ? { ...order, status } : order
+        order.id === selectedOrder.id ? { ...order, status } : order
       );
 
-      setOrders(updatedOrders);
+      // setOrders(updatedOrders);
 
       setSelectedOrder((prev) => ({
         ...prev,

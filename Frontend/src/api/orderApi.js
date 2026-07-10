@@ -11,7 +11,10 @@ const orderApi = {
     return axiosClient.get(`/public/orders/${orderId}/status/`)
   },
   updatOrderStatus:(orderId,data) => {
-    return axiosClient.patch(`/orders/${orderId}/status/`,data)
+    return axiosClient.patch(`/orders/${orderId}/update-status/`,data)
+  },
+  updatePaymentStatus:(orderId,data) => {
+    return axiosClient.patch(`/orders/${orderId}/payment-status/`,data)
   }
 
 };
