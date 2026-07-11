@@ -12,7 +12,13 @@ class Customer(models.Model):
     email = models.EmailField(null=True, blank=True)
     address = models.TextField(null=True, blank=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="ACTIVE")
-    created_at = models.DateTimeField(auto_now_add=True)
+    created_at = models.DateTimeField(
+        auto_now_add=True
+    )
+
+    updated_at = models.DateTimeField(
+        auto_now=True
+    )
 
     class Meta:
         db_table = "customers"

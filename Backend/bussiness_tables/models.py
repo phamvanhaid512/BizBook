@@ -1,5 +1,5 @@
 from django.db import models
-
+from django.utils import timezone
 # Create your models here.
 class Bussiness_Tables(models.Model):
     STATUS_CHOICES = (
@@ -14,7 +14,13 @@ class Bussiness_Tables(models.Model):
         blank=True
     )
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="AVAILABLE")
-    created_at = models.DateTimeField(auto_now_add=True)
+    created_at = models.DateTimeField(
+    default=timezone.now
+    )
+
+    updated_at = models.DateTimeField(
+        auto_now=True
+    )
 
     class Meta:
         db_table = "bussiness_table"

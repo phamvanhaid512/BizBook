@@ -17,12 +17,18 @@ class Product(models.Model):
         related_name="products"
     )
     price = models.DecimalField(max_digits=12, decimal_places=2)
+    cost_price = models.DecimalField(max_digits=12, decimal_places=2,default=0)
     stock_quantity = models.IntegerField(default=0)
     unit = models.CharField(max_length=50, null=True, blank=True)
     description = models.TextField(null=True, blank=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="ACTIVE")
-    created_at = models.DateTimeField(auto_now_add=True)
+    created_at = models.DateTimeField(
+        auto_now_add=True
+    )
 
+    updated_at = models.DateTimeField(
+        auto_now=True
+    )
     class Meta:
         db_table = "products"
 
