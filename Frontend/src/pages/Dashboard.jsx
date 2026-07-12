@@ -844,7 +844,7 @@ export default function Dashboard() {
         </div>
       </section>
 
-      <section
+      <section className="period-picker"
         style={{
           display: "flex",
           gap: 12,

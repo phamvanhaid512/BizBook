@@ -36,7 +36,50 @@ input {
 button {
   cursor: pointer;
 }
+.period-picker {
+  margin-bottom: 20px;
+}
 
+.period-picker input[type="month"] {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+
+  min-width: 220px;
+  height: 46px;
+  padding: 0 44px 0 16px;
+
+  border: 1px solid #d9e2ec;
+  border-radius: 14px;
+  background: #ffffff;
+  color: #172033;
+
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 46px;
+
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.04);
+  transition: all 0.2s ease;
+}
+
+.period-picker input[type="month"]:hover {
+  border-color: #b8c7d9;
+}
+
+.period-picker input[type="month"]:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12);
+}
+
+.period-picker input[type="month"]::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  opacity: 0.8;
+}
+
+.period-picker input[type="month"]::-webkit-calendar-picker-indicator:hover {
+  opacity: 1;
+}
 .cost-dashboard {
   min-height: 100vh;
   padding: 36px;
