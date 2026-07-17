@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 """
 
 import environ
+import os
 from pathlib import Path
 from datetime import timedelta
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -34,7 +35,6 @@ REST_FRAMEWORK = {
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     )
 }
-
 JWT_SECRET_KEY = 'your-secret-key-2026'
 JWT_ALGORITHM = 'HS256'
 JWT_ACCESS_TOKEN_EXPIRE_MINUTES = 120
@@ -59,6 +59,9 @@ INSTALLED_APPS = [
     'bussiness_tables',
     'expenses',
     'dashboard',
+    # 'rest_framework',
+    'data_mining.apps.DataMiningConfig',
+    # 'ai_agent.apps.AiAgentConfig',
     # 'mining',
     # 'ai_agent',
 ]
@@ -68,6 +71,8 @@ CHANNEL_LAYERS = {
     },
 }
 ASGI_APPLICATION = "config.asgi.application"
+WSGI_APPLICATION = 'config.wsgi.application'
+ROOT_URLCONF = 'config.urls'
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
@@ -79,7 +84,6 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
-ROOT_URLCONF = 'config.urls'
 
 TEMPLATES = [
     {
@@ -97,8 +101,6 @@ TEMPLATES = [
 ]
 
 
-WSGI_APPLICATION = 'config.wsgi.application'
-
 
 # Database
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
@@ -115,6 +117,8 @@ DATABASES = {
 }
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
+STATIC_URL = 'static/'
+
 # Password validation
 # https://docs.djangoproject.com/en/6.0/ref/settings/#auth-password-validators
 
@@ -149,10 +153,30 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
-STATIC_URL = 'static/'
 FRONTEND_URL = env("FRONTEND_URL", default="http://localhost:5173")
 BACKEND_URL = env("BACKEND_URL")
 
+OPENAI_API_KEY = env("OPENAI_API_KEY", default="")
+OPENAI_MODEL = env("OPENAI_MODEL", default="gpt-5.6")
+
+DATA_MINING_ORDER_SCHEMA = {
+    "order_model": "orders.Order",
+    "order_item_related_name": "details",
+
+    "order_status_field": "status",
+    "completed_statuses": [
+        "COMPLETED",
+        "PAID",
+    ],
+    "order_total_field": "total_amount",
+    "order_date_field": "created_at",
+
+    "item_product_field": "product",
+    "item_quantity_field": "quantity",
+    "item_unit_price_field": "unit_price",
+
+    "product_name_field": "name",
+}
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,

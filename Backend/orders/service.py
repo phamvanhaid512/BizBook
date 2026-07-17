@@ -53,6 +53,23 @@ class OrderService(BaseService):
             }
         }
     
+    def filter_orders(self,params):
+        filters={}
+        status = params.get("status")
+        payment_status = params.get("payment_status")
+        customer_id = params.get("customer_id")
+        created_by_id = params.get("created_by_id")
+
+        if status:
+            filters["status"] = status
+        if payment_status:
+            filters["payment_status"] = payment_status
+  
+        
+        if filters:
+            orders = self._repository.filters_orders()
+        else:
+            orders = self._repository.get
     def get_orders(self, params):
         filters = {}
 
@@ -267,3 +284,4 @@ class OrderService(BaseService):
             "message": "Cập nhật trạng thái thanh toán thành công",
             "data": self._serializer_class(order).data
         }
+    

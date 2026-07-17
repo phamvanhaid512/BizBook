@@ -162,6 +162,23 @@ def delete_order(request, id):
         result["message"]
     )
 
+@csrf_exempt
+@require_http_methods(["GET"])
+@jwt_required
+@role_required(["ADMIN"])
+def filter_orders(request):
+    result = order_service.filter_orders(request.GET)
+
+    if not result["success"]: 
+        return ApiResponse.error(
+            result["message"],
+            404
+        )
+    return ApiResponse.success(
+        result["data"],
+        result["message"],
+        200
+    )
 
 # Controller-Users
 @csrf_exempt
