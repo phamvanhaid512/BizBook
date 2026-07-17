@@ -21,11 +21,11 @@ class DashBoardService(BaseService):
     def __init__(self):
         super().__init__(
             DashBoardRepository(),
-            DashboardSummarySerializer
+            DashboardSummarySerializer,
         )
 
     def get_day_range(self, date_value):
-        selected_date = parse_date(date_value)
+        selected_date = parse_date(str(date_value))
 
         if not selected_date:
             raise ValueError(
@@ -51,99 +51,144 @@ class DashBoardService(BaseService):
 
         last_day = monthrange(year, month)[1]
 
-        start_date = date(year, month, 1)
-        end_date = date(year, month, last_day)
-
-        return start_date, end_date
+        return (
+            date(year, month, 1),
+            date(year, month, last_day),
+        )
 
     def get_year_range(self, year):
         try:
             year = int(year)
 
         except (TypeError, ValueError):
-            raise ValueError(
-                "Năm phải là số"
+            raise ValueError("Năm phải là số")
+
+        return (
+            date(year, 1, 1),
+            date(year, 12, 31),
+        )
+
+    def resolve_date_range(
+        self,
+        filter_type,
+        date_value=None,
+        month=None,
+        year=None,
+    ):
+        today = timezone.localdate()
+
+        if filter_type == "day":
+            date_value = (
+                date_value
+                or today.strftime("%Y-%m-%d")
             )
 
-        start_date = date(year, 1, 1)
-        end_date = date(year, 12, 31)
+            start_date, end_date = self.get_day_range(
+                date_value
+            )
 
-        return start_date, end_date
+            return {
+                "start_date": start_date,
+                "end_date": end_date,
+                "group_by": "day",
+            }
+
+        if filter_type == "month":
+            month = month or today.month
+            year = year or today.year
+
+            start_date, end_date = self.get_month_range(
+                month=month,
+                year=year,
+            )
+
+            return {
+                "start_date": start_date,
+                "end_date": end_date,
+                "group_by": "day",
+            }
+
+        if filter_type == "year":
+            year = year or today.year
+
+            start_date, end_date = self.get_year_range(
+                year=year,
+            )
+
+            return {
+                "start_date": start_date,
+                "end_date": end_date,
+                "group_by": "month",
+            }
+
+        raise ValueError(
+            "filter chỉ nhận day, month hoặc year"
+        )
 
     def get_dashboard_summary(
         self,
         filter_type="day",
         date_value=None,
         month=None,
-        year=None
+        year=None,
     ):
         try:
-            today = timezone.localdate()
-
-            if filter_type == "day":
-                if not date_value:
-                    date_value = today.strftime("%Y-%m-%d")
-
-                start_date, end_date = self.get_day_range(
-                    date_value
-                )
-
-                chart_data = self._repository.get_daily_revenue(
-                    start_date=start_date,
-                    end_date=end_date
-                )
-
-            elif filter_type == "month":
-                if not month:
-                    month = today.month
-
-                if not year:
-                    year = today.year
-
-                start_date, end_date = self.get_month_range(
-                    month=month,
-                    year=year
-                )
-
-                chart_data = self._repository.get_daily_revenue(
-                    start_date=start_date,
-                    end_date=end_date
-                )
-
-            elif filter_type == "year":
-                if not year:
-                    year = today.year
-
-                start_date, end_date = self.get_year_range(
-                    year=year
-                )
-
-                chart_data = self._repository.get_monthly_revenue(
-                    year=int(year)
-                )
-
-            else:
-                return {
-                    "success": False,
-                    "message": "filter chỉ nhận day, month hoặc year",
-                    "data": None
-                }
-
-            summary = self._repository.get_revenue_summary(
-                start_date=start_date,
-                end_date=end_date
+            period = self.resolve_date_range(
+                filter_type=filter_type,
+                date_value=date_value,
+                month=month,
+                year=year,
             )
 
-            total_revenue = Decimal(str(summary["total_revenue"]))
-            total_cost = Decimal(str(summary["total_cost"]))
-            total_profit = Decimal(str(summary["total_profit"]))
-            total_orders = summary["total_orders"]
+            start_date = period["start_date"]
+            end_date = period["end_date"]
+
+            if period["group_by"] == "month":
+                chart_data = (
+                    self._repository
+                    .get_monthly_revenue(
+                        year=start_date.year
+                    )
+                )
+            else:
+                chart_data = (
+                    self._repository
+                    .get_daily_revenue(
+                        start_date=start_date,
+                        end_date=end_date,
+                    )
+                )
+
+            summary = (
+                self._repository
+                .get_revenue_summary(
+                    start_date=start_date,
+                    end_date=end_date,
+                )
+            )
+
+            total_revenue = Decimal(
+                str(summary["total_revenue"])
+            )
+
+            total_cost = Decimal(
+                str(summary["total_cost"])
+            )
+
+            total_profit = Decimal(
+                str(summary["total_profit"])
+            )
+
+            total_orders = int(
+                summary["total_orders"]
+            )
 
             average_order_value = Decimal("0")
 
             if total_orders > 0:
                 average_order_value = (
-                    total_revenue / Decimal(total_orders)
+                    total_revenue
+                    / Decimal(total_orders)
                 )
 
             data = {
@@ -156,9 +201,9 @@ class DashBoardService(BaseService):
                 "total_orders": total_orders,
                 "average_order_value": round(
                     average_order_value,
-                    2
+                    2,
                 ),
-                "chart_data": chart_data
+                "chart_data": chart_data,
             }
 
             serializer = self._serializer_class(
@@ -167,20 +212,22 @@ class DashBoardService(BaseService):
 
             return {
                 "success": True,
-                "message": "Lấy dữ liệu Dashboard thành công",
-                "data": serializer.data
+                "message": (
+                    "Lấy dữ liệu Dashboard thành công"
+                ),
+                "data": serializer.data,
             }
 
         except ValueError as error:
             logger.warning(
                 "Lỗi dữ liệu đầu vào Dashboard: %s",
-                error
+                error,
             )
 
             return {
                 "success": False,
                 "message": str(error),
-                "data": None
+                "data": None,
             }
 
         except Exception as error:
@@ -193,10 +240,14 @@ class DashBoardService(BaseService):
             }
 
             if settings.DEBUG:
-                error_data["traceback"] = traceback.format_exc()
+                error_data["traceback"] = (
+                    traceback.format_exc()
+                )
 
             return {
                 "success": False,
-                "message": "Không thể lấy dữ liệu Dashboard",
-                "data": error_data
+                "message": (
+                    "Không thể lấy dữ liệu Dashboard"
+                ),
+                "data": error_data,
             }
