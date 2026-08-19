@@ -11,8 +11,8 @@ from common.untils import RequestData
 from .service import DataMiningService
 
 
-data_mining_service = DataMiningService()
 
+data_mining_service = DataMiningService()
 
 # def get_request_user(request):
 #     user = getattr(
@@ -30,7 +30,24 @@ data_mining_service = DataMiningService()
 
 #     return user
 
+@csrf_exempt
+@require_http_methods(["GET"])
+@jwt_required
+@role_required(["ADMIN"])
+def get_highlights(request):
+    result = data_mining_service.get_highlights()
 
+    if not result["success"]:
+        return ApiResponse.error(
+            result["message"],
+            400,
+            result.get("data")
+        )
+    return ApiResponse.success(
+            result["data"],
+            result["message"],
+            200,
+        )
 @csrf_exempt
 @require_http_methods(["POST"])
 @jwt_required
@@ -55,33 +72,29 @@ def run_apriori(request):
         200,
     )
 
-
 @csrf_exempt
 @require_http_methods(["POST"])
 @jwt_required
 @role_required(["ADMIN"])
 def run_forecasting(request):
     data = RequestData.get_body(request)
-
     result = (
         data_mining_service
         .run_forecasting(
-            data=data,
-            user=get_request_user(request),
+        data=data,
+        user=request.current_user
         )
     )
-
     if not result["success"]:
         return ApiResponse.error(
             result["message"],
             400,
-            result.get("data"),
+            result.get("data")
         )
-
     return ApiResponse.success(
         result["data"],
         result["message"],
-        200,
+        200
     )
 
 

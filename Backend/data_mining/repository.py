@@ -1,12 +1,36 @@
+from decimal import Decimal
+
+from django.db.models.fields import DecimalField
+from django.db.models.functions import Coalesce, TruncDate
+
 from common.base_repository import BaseRepository
 from .models import MiningRun
 
-from django.db.models import Count, F, Sum
+from django.db.models import Count, F, Sum, Value
 
-from orders.models import OrderDetail
+from orders.models import Order, OrderDetail
 
 
 class SalesDataRepository:
+
+    def get_order_completed(self,start_date,end_date):
+        queryset = (
+            Order.objects
+            .filter(
+                created_at__date__gte=start_date,
+                created_at__date__lte=end_date,
+                status="COMPLETED",
+            )
+            .order_by("created_at")
+    )
+
+        print(
+            "🚀 ~ SalesDataRepository "
+            "~ get_order_completed ~ queryset:",
+            queryset,
+        )
+
+        return queryset
     def get_order_transaction(
             self,
             start_date=None,
@@ -40,7 +64,28 @@ class SalesDataRepository:
         )
 
 
-        
+    def get_daily_revenue(self,start_date,end_date):
+        orders = self.get_order_completed(
+            start_date=start_date,
+            end_date=end_date,
+        )
+        return list(
+            orders
+            .annotate(date=TruncDate("created_at"))
+            .values("date")
+            .annotate(
+                revenue=Coalesce(
+                    Sum("total_amount"),
+                    Value(Decimal("0")),
+                    output_field=DecimalField(
+                        max_digits=18,
+                        decimal_places=2,
+                    ),
+                ),
+                order_count=Count("id"),
+            )
+            .order_by("date")
+        )        
         
 
 # class SalesDataRepository:
@@ -139,7 +184,17 @@ class SalesDataRepository:
 #         ]
     
 
-class MiningRunRepository:
+class MiningRunRepository(BaseRepository):
+    def __init__(self):
+        super().__init__(MiningRun)
+    def get_latest_run_by_type(self,run_type):
+        return (
+            self.get_model()
+            .objects
+            .filter(run_type=run_type)
+            .order_by("-created_at")
+            .first()
+        )
     def create(
         self,
         run_type,

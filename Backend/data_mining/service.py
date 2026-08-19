@@ -51,6 +51,46 @@ class DataMiningService:
             RevenueForecastAnalyzer()
         )
 
+    def format_highlight(self, mining_run):
+        if not mining_run:
+            return None
+
+        return {
+            "id": mining_run.id,
+            "run_type": mining_run.run_type,
+            "parameters": mining_run.parameters,
+            "result": mining_run.result,
+            "created_at": mining_run.created_at,
+        }
+
+    def get_highlights(self):
+        latest_apriori = (
+            self.mining_run_repository
+            .get_latest_run_by_type(
+                MiningRun.RunType.APRIORI
+            )
+        )
+
+        latest_forecasting = (
+            self.mining_run_repository
+            .get_latest_run_by_type(
+                MiningRun.RunType.FORECASTING
+            )
+        )
+
+        return {
+            "success": True,
+            "message": "Lấy kết quả Data Mining gần nhất thành công",
+            "data": {
+                "apriori": self.format_highlight(
+                    latest_apriori
+                ),
+                "forecasting": self.format_highlight(
+                    latest_forecasting
+                ),
+            },
+        }
+
     def run_apriori(
             self,
             data,
@@ -219,57 +259,96 @@ class DataMiningService:
     #                 "Không thể phân tích Apriori"
     #             ),
     #         )
-
     def run_forecasting(
         self,
         data,
         user=None,
     ):
         try:
-            serializer = (
-                ForecastRequestSerializer(
-                    data=data
-                )
+            serializer =  ForecastRequestSerializer(data=data)
+            if not serializer.is_valid():
+                return {
+                    "success":False,
+                    "message":"Dữ liệu dự báo không hợp lệ",
+                    "data":serializer.errors
+                }
+            validated_data = (
+                serializer.validated_data
+            )   
+            forecast_days = validated_data[
+            "forecast_days"
+            ]
+
+            start_date = validated_data.get(
+                "start_date"
             )
 
-            if not serializer.is_valid():
+            end_date = validated_data.get(
+                "end_date"
+            )
+            # result = self.sales_repository.get_order_completed()
+
+            # Nếu có đủ start_date và end_date
+            # thì đây là chế độ tùy chỉnh
+            is_custom_mode = (
+                start_date is not None
+                and end_date is not None
+            )
+            if is_custom_mode:
+                mode = "custom"
+                history_days = (
+                    end_date - start_date
+                ).days+1
+
+            else:
+                mode = "recent"
+                history_days = validated_data[
+                    "history_days"
+                ]
+
+                end_date = timezone.localdate()
+                start_date = (
+                    end_date
+                    - timedelta(
+                        days=history_days - 1
+                    )
+                )
+
+            print(
+                "🚀 Forecasting mode:",
+                mode,
+            )
+
+            print(
+                "🚀 Forecasting period:",
+                start_date,
+                "→",
+                end_date,
+            )
+            # Repository chỉ lấy và nhóm
+            # doanh thu theo ngày
+
+            daily_revenue = (
+                self.sales_repository
+                .get_daily_revenue(start_date=start_date,end_date=end_date)
+            )
+            if not daily_revenue:
                 return {
                     "success": False,
                     "message": (
-                        "Dữ liệu Forecasting "
-                        "không hợp lệ"
+                        "Không có dữ liệu doanh thu "
+                        "trong khoảng thời gian đã chọn"
                     ),
-                    "data": serializer.errors,
+                    "data": {
+                        "mode": mode,
+                        "start_date": (
+                            start_date.isoformat()
+                        ),
+                        "end_date": (
+                            end_date.isoformat()
+                        ),
+                    },
                 }
-
-            validated_data = (
-                serializer.validated_data
-            )
-
-            history_days = validated_data[
-                "history_days"
-            ]
-
-            forecast_days = validated_data[
-                "forecast_days"
-            ]
-
-            end_date = timezone.localdate()
-
-            start_date = (
-                end_date
-                - timedelta(
-                    days=history_days - 1
-                )
-            )
-
-            daily_revenue = (
-                self.dashboard_repository
-                .get_daily_revenue(
-                    start_date=start_date,
-                    end_date=end_date,
-                )
-            )
 
             result = (
                 self.forecast_analyzer
@@ -279,7 +358,14 @@ class DataMiningService:
                 )
             )
 
+            if not isinstance(result, dict):
+                raise ValueError(
+                    "Forecast Analyzer phải trả "
+                    "về dữ liệu dạng dictionary"
+                )
+
             result["period"] = {
+                "mode": mode,
                 "start_date": (
                     start_date.isoformat()
                 ),
@@ -297,6 +383,7 @@ class DataMiningService:
                     .FORECASTING
                 ),
                 parameters={
+                    "mode": mode,
                     "history_days": history_days,
                     "forecast_days": (
                         forecast_days
@@ -330,6 +417,134 @@ class DataMiningService:
                     "Không thể dự báo doanh thu"
                 ),
             )
+
+        
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    # def run_forecasting(
+    #     self,
+    #     data,
+    #     user=None,
+    # ):
+    #     try:
+    #         serializer = (
+    #             ForecastRequestSerializer(
+    #                 data=data
+    #             )
+    #         )
+
+    #         if not serializer.is_valid():
+    #             return {
+    #                 "success": False,
+    #                 "message": (
+    #                     "Dữ liệu Forecasting "
+    #                     "không hợp lệ"
+    #                 ),
+    #                 "data": serializer.errors,
+    #             }
+
+    #         validated_data = (
+    #             serializer.validated_data
+    #         )
+
+    #         history_days = validated_data[
+    #             "history_days"
+    #         ]
+
+    #         forecast_days = validated_data[
+    #             "forecast_days"
+    #         ]
+
+    #         end_date = timezone.localdate()
+
+    #         start_date = (
+    #             end_date
+    #             - timedelta(
+    #                 days=history_days - 1
+    #             )
+    #         )
+
+    #         daily_revenue = (
+    #             self.dashboard_repository
+    #             .get_daily_revenue(
+    #                 start_date=start_date,
+    #                 end_date=end_date,
+    #             )
+    #         )
+
+    #         result = (
+    #             self.forecast_analyzer
+    #             .forecast(
+    #                 rows=daily_revenue,
+    #                 forecast_days=forecast_days,
+    #             )
+    #         )
+
+    #         result["period"] = {
+    #             "start_date": (
+    #                 start_date.isoformat()
+    #             ),
+    #             "end_date": (
+    #                 end_date.isoformat()
+    #             ),
+    #             "history_days": history_days,
+    #             "forecast_days": forecast_days,
+    #         }
+
+    #         self.mining_run_repository.create(
+    #             run_type=(
+    #                 MiningRun
+    #                 .RunType
+    #                 .FORECASTING
+    #             ),
+    #             parameters={
+    #                 "history_days": history_days,
+    #                 "forecast_days": (
+    #                     forecast_days
+    #                 ),
+    #                 "start_date": (
+    #                     start_date.isoformat()
+    #                 ),
+    #                 "end_date": (
+    #                     end_date.isoformat()
+    #                 ),
+    #             },
+    #             result=result,
+    #             user=user,
+    #         )
+
+    #         return {
+    #             "success": True,
+    #             "message": (
+    #                 "Dự báo doanh thu thành công"
+    #             ),
+    #             "data": result,
+    #         }
+
+    #     except Exception as error:
+    #         return self._handle_error(
+    #             error=error,
+    #             log_message=(
+    #                 "Lỗi khi dự báo doanh thu"
+    #             ),
+    #             response_message=(
+    #                 "Không thể dự báo doanh thu"
+    #             ),
+    #         )
 
     def get_business_overview(
         self,

@@ -29,6 +29,7 @@ urlpatterns = [
     path("api/", include("public_ordering.urls")),
     path("api/",include("dashboard.urls")),
     path("api/",include("data_mining.urls")),
+    path("api/", include("ai_agent.urls")),
     # path("api/",include("ai_agent.urls"))
 ]
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

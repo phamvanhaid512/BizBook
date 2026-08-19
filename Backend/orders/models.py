@@ -113,6 +113,15 @@ class OrderDetail(models.Model):
         decimal_places=2
     )
 
+    created_at = models.DateTimeField(
+        auto_now_add=True
+    )
+
+    updated_at = models.DateTimeField(
+        auto_now=True
+    )
+
+
     class Meta:
         db_table = "order_details"
         ordering = ["id"]

@@ -6,6 +6,7 @@ from django.db.models import (
     ExpressionWrapper,
     F,
     Sum,
+    Value,
 )
 from django.db.models.functions import (
     Coalesce,
@@ -26,10 +27,6 @@ class DashBoardRepository(BaseRepository):
         start_date,
         end_date,
     ):
-        """
-        Lấy các đơn hàng hoàn thành trong khoảng ngày.
-        """
-
         return self.get_model().objects.filter(
             created_at__date__gte=start_date,
             created_at__date__lte=end_date,
@@ -41,11 +38,6 @@ class DashBoardRepository(BaseRepository):
         start_date,
         end_date,
     ):
-        """
-        Gom doanh thu theo từng ngày.
-        Dùng cho filter=day, filter=month và Forecasting.
-        """
-
         orders = self.get_completed_orders_by_range(
             start_date=start_date,
             end_date=end_date,
@@ -58,7 +50,7 @@ class DashBoardRepository(BaseRepository):
             .annotate(
                 revenue=Coalesce(
                     Sum("total_amount"),
-                    Decimal("0"),
+                    Value(Decimal("0")),
                     output_field=DecimalField(
                         max_digits=18,
                         decimal_places=2,
@@ -70,11 +62,6 @@ class DashBoardRepository(BaseRepository):
         )
 
     def get_monthly_revenue(self, year):
-        """
-        Gom doanh thu theo từng tháng.
-        Dùng cho filter=year.
-        """
-
         orders = self.get_model().objects.filter(
             created_at__year=year,
             status="COMPLETED",
@@ -87,7 +74,7 @@ class DashBoardRepository(BaseRepository):
             .annotate(
                 revenue=Coalesce(
                     Sum("total_amount"),
-                    Decimal("0"),
+                    Value(Decimal("0")),
                     output_field=DecimalField(
                         max_digits=18,
                         decimal_places=2,
@@ -103,10 +90,6 @@ class DashBoardRepository(BaseRepository):
         start_date,
         end_date,
     ):
-        """
-        Tính tổng doanh thu, chi phí, lợi nhuận và số đơn.
-        """
-
         orders = self.get_completed_orders_by_range(
             start_date=start_date,
             end_date=end_date,
@@ -115,7 +98,7 @@ class DashBoardRepository(BaseRepository):
         order_summary = orders.aggregate(
             total_revenue=Coalesce(
                 Sum("total_amount"),
-                Decimal("0"),
+                Value(Decimal("0")),
                 output_field=DecimalField(
                     max_digits=18,
                     decimal_places=2,
@@ -132,18 +115,22 @@ class DashBoardRepository(BaseRepository):
             ),
         )
 
-        detail_summary = OrderDetail.objects.filter(
-            order__created_at__date__gte=start_date,
-            order__created_at__date__lte=end_date,
-            order__status="COMPLETED",
-        ).aggregate(
-            total_cost=Coalesce(
-                Sum(cost_expression),
-                Decimal("0"),
-                output_field=DecimalField(
-                    max_digits=18,
-                    decimal_places=2,
-                ),
+        detail_summary = (
+            OrderDetail.objects
+            .filter(
+                order__created_at__date__gte=start_date,
+                order__created_at__date__lte=end_date,
+                order__status="COMPLETED",
+            )
+            .aggregate(
+                total_cost=Coalesce(
+                    Sum(cost_expression),
+                    Value(Decimal("0")),
+                    output_field=DecimalField(
+                        max_digits=18,
+                        decimal_places=2,
+                    ),
+                )
             )
         )
 
