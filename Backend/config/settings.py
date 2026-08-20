@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 
 import environ
 import os
+from dotenv import load_dotenv
 from pathlib import Path
 from datetime import timedelta
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -157,7 +158,7 @@ FRONTEND_URL = env("FRONTEND_URL", default="http://localhost:5173")
 BACKEND_URL = env("BACKEND_URL")
 
 OPENAI_API_KEY = env("OPENAI_API_KEY", default="")
-OPENAI_MODEL = env("OPENAI_MODEL", default="gpt-5.6")
+OPENAI_MODEL = env("OPENAI_MODEL", default="gpt-4o-mini")
 
 DATA_MINING_ORDER_SCHEMA = {
     "order_model": "orders.Order",

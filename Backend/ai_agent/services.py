@@ -10,7 +10,12 @@ from .serializers import (
     ChatRequestSerializer,
     OCRRequestSerializer,
 )
+import json
 
+from django.conf import settings
+
+from openai import OpenAI
+from openai import OpenAIError
 
 class AIAgentService(BaseService):
     def __init__(self):
@@ -64,11 +69,18 @@ class AIAgentService(BaseService):
             role=AIMessage.Role.USER,
             content=message,
         )
+        intent = self.__detect_intent(
+        message=message
+        )
+
+        business_context = self.__get_business_context(
+        intent=intent
+        )
 
         # 2. Tạm phản hồi mẫu.
         # Sau khi API này chạy ổn, ta thay hàm này
         # bằng gọi OpenAI thật.
-        assistant_answer = self.__generate_sample_answer(
+        assistant_answer = self._generate_sample_answer(
             message=message
         )
 
@@ -119,7 +131,7 @@ class AIAgentService(BaseService):
             title=first_message[:50],
         )
 
-    def __generate_sample_answer(
+    def _generate_sample_answer(
         self,
         message,
     ):
