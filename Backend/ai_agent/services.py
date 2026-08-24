@@ -1,319 +1,201 @@
-from common.base_service import BaseService
-
-from .models import (
-    AIMessage,
-    OCRDocument,
+from .agents.business_advisor_agent import BusinessAdvisorAgent
+from .agents.data_analysis_agent import DataAnalysisAgent
+from .agents.intent_router import IntentRouter
+from .models import ChatMessage
+from .repositories import (
+    ChatMessageRepository,
+    ChatSessionRepository,
 )
-from .repositories import AIAgentRepository
 from .serializers import (
-    AIConversationSerializer,
+    ChatMessageSerializer,
     ChatRequestSerializer,
-    OCRRequestSerializer,
+    ChatSessionSerializer,
+    CreateSessionRequestSerializer,
 )
-import json
+from data_mining.service import DataMiningService
 
-from django.conf import settings
 
-from openai import OpenAI
-from openai import OpenAIError
-
-class AIAgentService(BaseService):
+class AiAgentService:
     def __init__(self):
-        super().__init__(
-            AIAgentRepository(),
-            AIConversationSerializer,
+        self.session_repository = ChatSessionRepository()
+        self.message_repository = ChatMessageRepository()
+
+        self.intent_router = IntentRouter()
+        self.data_analysis_agent = DataAnalysisAgent(
+            DataMiningService()
+        )
+        self.business_advisor_agent = BusinessAdvisorAgent()
+
+    def create_session(self, user, data):
+        serializer = CreateSessionRequestSerializer(data=data)
+
+        if not serializer.is_valid():
+            return self._validation_error(serializer.errors)
+
+        title = (
+            serializer.validated_data.get("title", "").strip()
+            or "Cuộc trò chuyện mới"
+        )
+        session = self.session_repository.create(user, title)
+
+        return {
+            "success": True,
+            "message": "Tạo cuộc trò chuyện thành công.",
+            "data": ChatSessionSerializer(session).data,
+        }
+
+    def get_sessions(self, user):
+        sessions = self.session_repository.get_all_by_user(user)
+
+        return {
+            "success": True,
+            "message": "Lấy danh sách cuộc trò chuyện thành công.",
+            "data": ChatSessionSerializer(sessions, many=True).data,
+        }
+
+    def get_messages(self, user, session_id):
+        session = self.session_repository.get_owned_by_user(
+            session_id,
+            user,
         )
 
-    # ==========================================
-    # CHAT
-    # ==========================================
+        if not session:
+            return self._not_found()
 
-    def chat(
-        self,
-        data,
-        user,
-    ):
+        messages = self.message_repository.get_all_by_session(session)
+
+        return {
+            "success": True,
+            "message": "Lấy lịch sử chat thành công.",
+            "data": {
+                "session": ChatSessionSerializer(session).data,
+                "messages": ChatMessageSerializer(
+                    messages,
+                    many=True,
+                ).data,
+            },
+        }
+
+    def delete_session(self, user, session_id):
+        session = self.session_repository.get_owned_by_user(
+            session_id,
+            user,
+        )
+
+        if not session:
+            return self._not_found()
+
+        self.session_repository.delete(session)
+
+        return {
+            "success": True,
+            "message": "Xóa cuộc trò chuyện thành công.",
+            "data": None,
+        }
+
+    def chat(self, user, data):
         serializer = ChatRequestSerializer(data=data)
 
         if not serializer.is_valid():
-            return {
-                "success": False,
-                "message": "Dữ liệu chat không hợp lệ",
-                "data": serializer.errors,
-            }
+            return self._validation_error(serializer.errors)
 
-        validated_data = serializer.validated_data
-        print("validated_data",validated_data)
-        conversation_id = validated_data.get(
-            "conversation_id"
-        )
+        validated = serializer.validated_data
+        message_text = validated["message"].strip()
+        session_id = validated.get("session_id")
 
-        message = validated_data.get("message")
-
-        conversation = self.get_or_create_conversation(
-            conversation_id=conversation_id,
-            user=user,
-            first_message=message,
-        )
-
-        if not conversation:
-            return {
-                "success": False,
-                "message": "Không tìm thấy cuộc trò chuyện",
-                "data": None,
-            }
-
-        # 1. Lưu tin nhắn người dùng
-        self._repository.create_message(
-            conversation=conversation,
-            role=AIMessage.Role.USER,
-            content=message,
-        )
-        intent = self.__detect_intent(
-        message=message
-        )
-
-        business_context = self.__get_business_context(
-        intent=intent
-        )
-
-        # 2. Tạm phản hồi mẫu.
-        # Sau khi API này chạy ổn, ta thay hàm này
-        # bằng gọi OpenAI thật.
-        assistant_answer = self._generate_sample_answer(
-            message=message
-        )
-
-        # 3. Lưu phản hồi AI
-        assistant_message = (
-            self._repository.create_message(
-                conversation=conversation,
-                role=AIMessage.Role.ASSISTANT,
-                content=assistant_answer,
+        if session_id:
+            session = self.session_repository.get_owned_by_user(
+                session_id,
+                user,
             )
-        )
-
-        return {
-            "success": True,
-            "message": "AI phản hồi thành công",
-            "data": {
-                "conversation_id": conversation.id,
-                "message": {
-                    "id": assistant_message.id,
-                    "role": assistant_message.role,
-                    "content": assistant_message.content,
-                    "created_at": (
-                        assistant_message.created_at.isoformat()
-                    ),
-                },
-            },
-        }
-
-    def get_or_create_conversation(
-        self,
-        conversation_id,
-        user,
-        first_message,
-    ):
-        # Có conversation_id: tiếp tục chat cũ
-        if conversation_id:
-            return (
-                self._repository
-                .get_conversation_by_id_and_user(
-                    conversation_id=conversation_id,
-                    user=user,
-                )
-            )
-
-        # Không có conversation_id: tạo chat mới
-        return self._repository.create_conversation(
-            user=user,
-            title=first_message[:50],
-        )
-
-    def _generate_sample_answer(
-        self,
-        message,
-    ):
-        message = message.lower()
-
-        if "doanh thu" in message:
-            return (
-                "Tôi đã nhận câu hỏi về doanh thu. "
-                "Khi kết nối dữ liệu bán hàng, tôi sẽ "
-                "phân tích doanh thu và xu hướng cho bạn."
-            )
-
-        if (
-            "bán kèm" in message
-            or "mua kèm" in message
-            or "apriori" in message
-        ):
-            return (
-                "Tôi sẽ dựa vào kết quả Apriori gần nhất "
-                "để gợi ý sản phẩm nên bán kèm."
-            )
-
-        if (
-            "dự báo" in message
-            or "forecast" in message
-        ):
-            return (
-                "Tôi sẽ dựa vào kết quả Forecasting "
-                "để tư vấn doanh thu trong thời gian tới."
-            )
-
-        return (
-            "Tôi đã nhận câu hỏi của bạn. "
-            "Bạn có thể hỏi về doanh thu, sản phẩm, "
-            "gợi ý bán kèm hoặc dự báo doanh thu."
-        )
-
-    # ==========================================
-    # HISTORY CHAT
-    # ==========================================
-
-    def get_conversations(self, user):
-        conversations = (
-            self._repository.get_conversations_by_user(
-                user=user
-            )
-        )
-
-        result = []
-
-        for conversation in conversations:
-            result.append(
-                {
-                    "id": conversation.id,
-                    "title": conversation.title,
-                    "created_at": (
-                        conversation.created_at.isoformat()
-                    ),
-                    "updated_at": (
-                        conversation.updated_at.isoformat()
-                    ),
-                }
-            )
-
-        return {
-            "success": True,
-            "message": "Lấy lịch sử chat thành công",
-            "data": result,
-        }
-
-    def get_messages(
-        self,
-        conversation_id,
-        user,
-    ):
-        conversation = (
-            self._repository
-            .get_conversation_by_id_and_user(
-                conversation_id=conversation_id,
+            if not session:
+                return self._not_found()
+        else:
+            session = self.session_repository.create(
                 user=user,
+                title=self._build_title(message_text),
             )
+
+        recent_messages = self.message_repository.get_recent_by_session(
+            session,
+            limit=20,
+        )
+        previous_intent = self._find_previous_intent(recent_messages)
+
+        user_message = self.message_repository.create(
+            session=session,
+            role=ChatMessage.Role.USER,
+            content=message_text,
         )
 
-        if not conversation:
-            return {
-                "success": False,
-                "message": "Không tìm thấy cuộc trò chuyện",
-                "data": None,
-            }
-
-        messages = (
-            self._repository
-            .get_messages_by_conversation(
-                conversation=conversation
-            )
+        route = self.intent_router.route(
+            message_text,
+            previous_intent=previous_intent,
+        )
+        analysis = self.data_analysis_agent.execute(route)
+        advisor_output = self.business_advisor_agent.respond(
+            route,
+            analysis,
         )
 
-        result = []
+        assistant_metadata = {
+            "intent": route["intent"],
+            "entities": route.get("entities", {}),
+            "tool": analysis.get("tool"),
+            "presentation": advisor_output.get("presentation", {}),
+            "suggested_questions": advisor_output.get(
+                "suggested_questions",
+                [],
+            ),
+        }
 
-        for message in messages:
-            result.append(
-                {
-                    "id": message.id,
-                    "role": message.role,
-                    "content": message.content,
-                    "created_at": (
-                        message.created_at.isoformat()
-                    ),
-                }
-            )
+        assistant_message = self.message_repository.create(
+            session=session,
+            role=ChatMessage.Role.ASSISTANT,
+            content=advisor_output["reply"],
+            metadata=assistant_metadata,
+        )
 
         return {
             "success": True,
-            "message": "Lấy tin nhắn thành công",
+            "message": "Trợ lý ảo đã trả lời.",
             "data": {
-                "conversation": {
-                    "id": conversation.id,
-                    "title": conversation.title,
-                },
-                "messages": result,
+                "session": ChatSessionSerializer(session).data,
+                "user_message": ChatMessageSerializer(user_message).data,
+                "assistant_message": ChatMessageSerializer(
+                    assistant_message
+                ).data,
             },
         }
 
-    # ==========================================
-    # OCR - BƯỚC 1: UPLOAD VÀ LƯU ẢNH
-    # ==========================================
+    @staticmethod
+    def _find_previous_intent(messages):
+        for message in reversed(messages):
+            if message.role == ChatMessage.Role.ASSISTANT:
+                intent = message.metadata.get("intent")
+                if intent:
+                    return intent
+        return None
 
-    def upload_ocr_document(
-        self,
-        files,
-        user,
-    ):
-        serializer = OCRRequestSerializer(data=files)
+    @staticmethod
+    def _build_title(message):
+        normalized = " ".join(message.split())
+        if len(normalized) <= 60:
+            return normalized
+        return normalized[:57] + "..."
 
-        if not serializer.is_valid():
-            return {
-                "success": False,
-                "message": "Ảnh hóa đơn không hợp lệ",
-                "data": serializer.errors,
-            }
-
-        image = serializer.validated_data.get("image")
-
-        if image.size > 5 * 1024 * 1024:
-            return {
-                "success": False,
-                "message": "Ảnh không được lớn hơn 5MB",
-                "data": None,
-            }
-
-        document = (
-            self.__repository.create_ocr_document(
-                user=user,
-                image=image,
-            )
-        )
-
-        # Hiện tại mới lưu ảnh, chưa OCR thật.
-        # Bước sau sẽ thay phần dữ liệu mẫu này
-        # bằng OpenAI Vision hoặc Tesseract OCR.
-        document = (
-            self.__repository.update_ocr_document(
-                document=document,
-                extracted_data={},
-                confidence_score=0,
-                status=OCRDocument.Status.WARNING,
-                warnings=[
-                    "Ảnh đã tải lên thành công.",
-                    "OCR chưa được kết nối.",
-                ],
-            )
-        )
-
+    @staticmethod
+    def _validation_error(errors):
         return {
-            "success": True,
-            "message": "Tải ảnh hóa đơn thành công",
-            "data": {
-                "document_id": document.id,
-                "file_name": document.file_name,
-                "image_url": document.image.url,
-                "status": document.status,
-                "warnings": document.warnings,
-                "created_at": document.created_at.isoformat(),
-            },
+            "success": False,
+            "message": "Dữ liệu đầu vào không hợp lệ.",
+            "data": errors,
+        }
+
+    @staticmethod
+    def _not_found():
+        return {
+            "success": False,
+            "message": "Không tìm thấy cuộc trò chuyện.",
+            "data": None,
         }

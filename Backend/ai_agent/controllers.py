@@ -12,12 +12,12 @@ from common.decorators import (
 )
 from common.untils import RequestData
 
-from .services import AIAgentService
+from .services import AiAgentService
 
 
 logger = logging.getLogger(__name__)
 
-ai_agent_service = AIAgentService()
+ai_agent_service = AiAgentService()
 
 
 def handle_api_exception(
