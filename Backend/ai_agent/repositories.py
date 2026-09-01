@@ -1,114 +1,65 @@
 from common.base_repository import BaseRepository
-
-from .models import (
-    AIConversation,
-    AIMessage,
-    OCRDocument,
-)
+from django.db.models import Count
+from .models import ChatMessage, ChatSession
 
 
-class AIAgentRepository(BaseRepository):
+class ChatSessionRepository(BaseRepository):
     def __init__(self):
-        super().__init__(AIConversation)
+        super().__init__(ChatSession)
+    # Thêm hàm create nhận user và title
+    def create(self, user, title):
+        return self.get_model().objects.create(user=user, title=title)
 
-    # ==========================================
-    # AI CONVERSATION
-    # ==========================================
-
-    def create_conversation(
-        self,
-        user,
-        title,
-    ):
-        return self.get_model().objects.create(
-            user=user,
-            title=title,
-        )
-
-    def get_conversation_by_id_and_user(
-        self,
-        conversation_id,
-        user,
-    ):
+    def get_owned_by_user(self, session_id, user):
         return (
-            self.get_model()
-            .objects
-            .filter(
-                id=conversation_id,
-                user=user,
-            )
+            self.get_model().objects
+            .filter(id=session_id, user=user)
             .first()
         )
 
-    def get_conversations_by_user(self, user):
+    def get_all_by_user(self, user):
         return (
-            self.get_model()
-            .objects
+            self.get_model().objects
             .filter(user=user)
+            .annotate(message_count=Count("messages"))
             .order_by("-updated_at")
         )
 
-    # ==========================================
-    # AI MESSAGE
-    # ==========================================
+    def update_title(self, session, title):
+        session.title = title
+        session.save(update_fields=["title", "updated_at"])
+        return session
 
-    def create_message(
-        self,
-        conversation,
-        role,
-        content,
-    ):
-        return AIMessage.objects.create(
-            conversation=conversation,
+    def touch(self, session):
+        session.save(update_fields=["updated_at"])
+
+
+class ChatMessageRepository(BaseRepository):
+    def __init__(self):
+        super().__init__(ChatMessage)
+
+    def create_message(self, session, role, content, metadata=None):
+        message = self.get_model().objects.create(
+            session=session,
             role=role,
             content=content,
+            metadata=metadata or {},
         )
+        session.save(update_fields=["updated_at"])
+        return message
 
-    def get_messages_by_conversation(
-        self,
-        conversation,
-    ):
+    def get_all_by_session(self, session):
         return (
-            AIMessage.objects
-            .filter(conversation=conversation)
+            self.get_model().objects
+            .filter(session=session)
             .order_by("created_at")
         )
 
-    # ==========================================
-    # OCR DOCUMENT
-    # ==========================================
-
-    def create_ocr_document(
-        self,
-        user,
-        image,
-    ):
-        return OCRDocument.objects.create(
-            user=user,
-            image=image,
-            file_name=image.name,
+    def get_recent_by_session(self, session, limit=20):
+        messages = list(
+            self.get_model().objects
+            .filter(session=session)
+            .order_by("-created_at")[:limit]
         )
-
-    def update_ocr_document(
-        self,
-        document,
-        extracted_data,
-        confidence_score,
-        status,
-        warnings,
-    ):
-        document.extracted_data = extracted_data
-        document.confidence_score = confidence_score
-        document.status = status
-        document.warnings = warnings
-
-        document.save(
-            update_fields=[
-                "extracted_data",
-                "confidence_score",
-                "status",
-                "warnings",
-            ]
-        )
-
-        return document
+        messages.reverse()
+        return messages

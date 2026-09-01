@@ -1,39 +1,25 @@
 from rest_framework import serializers
+from .models import ChatSession, ChatMessage
 
-from .models import AIConversation
+
+class CreateSessionRequestSerializer(serializers.Serializer):
+    title = serializers.CharField(max_length=255, required=False, allow_blank=True)
 
 
-class AIConversationSerializer(
-    serializers.ModelSerializer
-):
+class ChatRequestSerializer(serializers.Serializer):
+    message = serializers.CharField(required=True)
+    session_id = serializers.IntegerField(required=False, allow_null=True)
+
+
+class ChatMessageSerializer(serializers.ModelSerializer):
     class Meta:
-        model = AIConversation
-        fields = [
-            "id",
-            "title",
-            "created_at",
-            "updated_at",
-        ]
+        model = ChatMessage
+        fields = ["id", "role", "content", "metadata", "created_at"]
 
 
-class ChatRequestSerializer(
-    serializers.Serializer
-):
-    conversation_id = serializers.IntegerField(
-        required=False,
-        allow_null=True,
-    )
+class ChatSessionSerializer(serializers.ModelSerializer):
+    message_count = serializers.IntegerField(read_only=True, required=False)
 
-    message = serializers.CharField(
-        required=True,
-        max_length=2000,
-        trim_whitespace=True,
-    )
-
-
-class OCRRequestSerializer(
-    serializers.Serializer
-):
-    image = serializers.ImageField(
-        required=True,
-    )
+    class Meta:
+        model = ChatSession
+        fields = ["id", "title", "created_at", "updated_at", "message_count"]

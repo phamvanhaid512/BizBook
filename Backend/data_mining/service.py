@@ -737,6 +737,33 @@ class DataMiningService:
 
         return result
 
+    def get_dashboard(self, params=None):
+        """Hàm tích hợp chính được gọi từ DataAnalysisAgent và Dashboard Controller"""
+        try:
+            params = params or {}
+            history_days = int(params.get("history_days", 90))
+            top_product_limit = int(params.get("top_product_limit", 5))
+
+            overview_res = self.get_business_overview(history_days=history_days, top_product_limit=top_product_limit)
+            highlights_res = self.get_highlights()
+
+            overview_data = overview_res.get("data", {}) if overview_res.get("success") else {}
+            highlights_data = highlights_res.get("data", {}) if highlights_res.get("success") else {}
+
+            total_revenue = overview_data.get("total_revenue", 0)
+            total_orders = overview_data.get("total_orders", 0)
+
+            return {
+                "success": True,
+                "message": "Lấy dữ liệu dashboard khai phá thành công",
+                "data": {
+                    "overview": overview_data,
+                    "highlights": highlights_data,
+                },
+                "summary": f"Tổng doanh thu: {total_revenue:,.0f} VNĐ với {total_orders} đơn hàng.",
+            }
+        except Exception as error:
+            return self._handle_error(error, "Lỗi khi lấy dashboard data mining", "Không thể lấy dữ liệu dashboard")
     @staticmethod
     def _handle_error(
         error,
@@ -759,3 +786,60 @@ class DataMiningService:
             "message": response_message,
             "data": error_data,
         }
+
+    # ==========================================
+    # HÀM BỔ SUNG PHỤC VỤ CHO AI AGENT
+    # ==========================================
+    def get_latest_apriori_rules(self, limit=5):
+        """Lấy danh sách luật kết hợp Apriori gần nhất cho AI Agent"""
+        try:
+            latest_run = self.mining_run_repository.get_latest_run_by_type(
+                MiningRun.RunType.APRIORI
+            )
+            if not latest_run or not latest_run.result:
+                # Nếu chưa từng chạy lưu log, tự động kích hoạt phân tích mặc định
+                run_res = self.run_apriori(
+                    data={
+                        "min_support": 0.05,
+                        "min_confidence": 0.2,
+                        "min_lift": 1.0,
+                        "max_len": 2,
+                        "limit": limit,
+                    }
+                )
+                if run_res.get("success"):
+                    return run_res.get("data", [])
+                return []
+
+            result_data = latest_run.result
+            if isinstance(result_data, list):
+                return result_data[:limit]
+            elif isinstance(result_data, dict):
+                return result_data.get("rules", [])[:limit]
+            return []
+        except Exception as e:
+            logger.warning("Không thể lấy luật Apriori cho AI Agent: %s", str(e))
+            return []
+
+    def get_revenue_forecast(self, forecast_days=3, history_days=30):
+        """Lấy kết quả dự báo doanh thu gần nhất cho AI Agent"""
+        try:
+            latest_run = self.mining_run_repository.get_latest_run_by_type(
+                MiningRun.RunType.FORECASTING
+            )
+            if not latest_run or not latest_run.result:
+                # Tự động kích hoạt dự báo nếu chưa có lịch sử
+                run_res = self.run_forecasting(
+                    data={
+                        "forecast_days": forecast_days,
+                        "history_days": history_days,
+                    }
+                )
+                if run_res.get("success"):
+                    return run_res.get("data", {})
+                return {}
+
+            return latest_run.result
+        except Exception as e:
+            logger.warning("Không thể lấy dự báo doanh thu cho AI Agent: %s", str(e))
+            return {}
