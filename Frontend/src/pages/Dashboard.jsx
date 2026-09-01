@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "react-toastify";
-
+import { Link } from "react-router-dom";
 import {
   ArrowDownRight,
   ArrowUpRight,
@@ -29,6 +29,7 @@ import {
 } from "recharts";
 
 import dashboardApi from "../api/dashboardApi";
+import dataMiningApi from "../api/dataMiningApi";
 import orderApi from "../api/orderApi";
 
 import "./Dashboard.css";
@@ -97,10 +98,9 @@ function getTodayDate() {
 function getCurrentMonth() {
   const now = new Date();
 
-  const year = now.getFullYear();
   const month = String(now.getMonth() + 1).padStart(2, "0");
 
-  return `${year}-${month}`;
+  return month;
 }
 
 function getCurrentYear() {
@@ -108,26 +108,30 @@ function getCurrentYear() {
 }
 
 function buildDashboardParams(period, selectedDate) {
-  const params = {
-    filter: period,
-  };
-
   if (period === "day") {
-    params.date = selectedDate;
+    return {
+      filter: "day",
+      date: selectedDate,
+    };
   }
 
   if (period === "month") {
-    const [year, month] = selectedDate.split("-");
-
-    params.month = Number(month);
-    params.year = Number(year);
+    return {
+      filter: "month",
+      month: selectedDate,
+    };
   }
 
   if (period === "year") {
-    params.year = Number(selectedDate);
+    return {
+      filter: "year",
+      year: selectedDate,
+    };
   }
 
-  return params;
+  return {
+    filter: period,
+  };
 }
 
 function getChartLabel(item) {
@@ -381,8 +385,7 @@ function KpiCard({
         <div className="kpi-icon">{icon}</div>
 
         <span
-          className={`kpi-change ${positive ? "positive" : "negative"
-            }`}
+          className={`kpi-change ${positive ? "positive" : "negative"}`}
         >
           {positive ? (
             <ArrowUpRight size={15} />
@@ -418,12 +421,380 @@ function BreakdownRow({
 }) {
   return (
     <div
-      className={`breakdown-row ${emphasized ? "emphasized" : ""
-        }`}
+      className={`breakdown-row ${emphasized ? "emphasized" : ""}`}
     >
       <span>{label}</span>
       <strong>{formatCurrency(value)}</strong>
     </div>
+  );
+}
+
+function formatPercent(value) {
+  return `${(
+    Number(value || 0) * 100
+  ).toFixed(1)}%`;
+}
+
+function formatMiningDate(value) {
+  if (!value) {
+    return "Chưa có thời gian";
+  }
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return "Chưa có thời gian";
+  }
+
+  return dateTimeFormatter.format(date);
+}
+
+function getRuleProducts(products) {
+  if (Array.isArray(products)) {
+    return products.join(", ");
+  }
+
+  return String(products || "--");
+}
+
+function getForecastRevenue(item) {
+  return (
+    item?.revenue ??
+    item?.forecast_revenue ??
+    item?.predicted_revenue ??
+    0
+  );
+}
+
+function SmartAnalysisCard({
+  miningHighlights,
+  loading,
+  error,
+}) {
+  const apriori =
+    miningHighlights?.apriori || null;
+
+  const forecasting =
+    miningHighlights?.forecasting || null;
+
+  /*
+   * API trả kết quả phân tích bên trong result:
+   *
+   * apriori.result.rules
+   * apriori.result.frequent_itemsets
+   * forecasting.result.forecast
+   */
+  const aprioriResult =
+    apriori?.result || {};
+
+  const forecastingResult =
+    forecasting?.result || {};
+
+  const rules = Array.isArray(
+    aprioriResult.rules
+  )
+    ? aprioriResult.rules
+    : [];
+
+  const frequentItemsets = Array.isArray(
+    aprioriResult.frequent_itemsets
+  )
+    ? aprioriResult.frequent_itemsets
+    : [];
+
+  const forecastItems = Array.isArray(
+    forecastingResult.forecast
+  )
+    ? forecastingResult.forecast
+    : [];
+
+  const forecastSummary =
+    forecastingResult.summary ||
+    "Chưa có kết quả dự báo.";
+
+  return (
+    <section className="dashboard-card smart-analysis">
+      <div className="card-heading smart-analysis__heading">
+        <div className="smart-analysis__title">
+          <h2>Phân tích thông minh</h2>
+
+          <p>
+            Kết quả Data Mining gần nhất, dùng để xem
+            nhanh trên Dashboard.
+          </p>
+        </div>
+
+        <div className="analysis-actions">
+          <span className="analysis-badge">
+            Data Mining
+          </span>
+
+          <Link
+            to="/mining"
+            className="analysis-link"
+          >
+            Xem chi tiết
+            <ChevronRight size={16} />
+          </Link>
+        </div>
+      </div>
+
+      {loading ? (
+        <div className="smart-analysis__state">
+          Đang tải kết quả phân tích...
+        </div>
+      ) : error ? (
+        <div className="smart-analysis__error">
+          {error}
+        </div>
+      ) : (
+        <div className="smart-analysis__grid">
+          {/* KẾT QUẢ APRIORI */}
+          <article className="smart-panel">
+            <div className="smart-panel__header">
+              <div>
+                <span className="smart-panel__type">
+                  Apriori
+                </span>
+
+                <h3>
+                  Sản phẩm thường mua cùng
+                </h3>
+              </div>
+
+              <small>
+                {formatMiningDate(
+                  apriori?.created_at
+                )}
+              </small>
+            </div>
+
+            {apriori ? (
+              <>
+                <div className="apriori-statistics">
+                  <div>
+                    <span>Số giao dịch</span>
+
+                    <strong>
+                      {Number(
+                        aprioriResult.transaction_count ||
+                          0
+                      )}
+                    </strong>
+                  </div>
+
+                  <div>
+                    <span>Số sản phẩm</span>
+
+                    <strong>
+                      {Number(
+                        aprioriResult.product_count ||
+                          0
+                      )}
+                    </strong>
+                  </div>
+
+                  <div>
+                    <span>Số luật kết hợp</span>
+
+                    <strong>
+                      {rules.length}
+                    </strong>
+                  </div>
+                </div>
+
+                {rules.length > 0 ? (
+                  /*
+                   * Nếu có luật kết hợp thì hiển thị:
+                   * mua A -> gợi ý B
+                   */
+                  <div className="rule-list">
+                    {rules
+                      .slice(0, 3)
+                      .map((rule, index) => (
+                        <div
+                          className="rule-item"
+                          key={`${getRuleProducts(
+                            rule.antecedents
+                          )}-${index}`}
+                        >
+                          <div className="rule-item__content">
+                            <strong>
+                              {getRuleProducts(
+                                rule.antecedents
+                              )}
+                            </strong>
+
+                            <span>
+                              nên gợi ý{" "}
+                              <b>
+                                {getRuleProducts(
+                                  rule.consequents
+                                )}
+                              </b>
+                            </span>
+                          </div>
+
+                          <em>
+                            Tin cậy{" "}
+                            {formatPercent(
+                              rule.confidence
+                            )}
+                          </em>
+                        </div>
+                      ))}
+                  </div>
+                ) : frequentItemsets.length > 0 ? (
+                  /*
+                   * Nếu chưa có rules nhưng vẫn có
+                   * frequent_itemsets thì hiển thị
+                   * sản phẩm xuất hiện phổ biến.
+                   */
+                  <div className="frequent-section">
+                    <div className="frequent-heading">
+                      <span>
+                        Sản phẩm xuất hiện phổ biến
+                      </span>
+
+                      <small>
+                        Chưa đủ điều kiện tạo luật kết hợp
+                      </small>
+                    </div>
+
+                    <div className="frequent-list">
+                      {frequentItemsets
+                        .slice(0, 3)
+                        .map((item, index) => (
+                          <div
+                            className="frequent-item"
+                            key={`${getRuleProducts(
+                              item.items
+                            )}-${index}`}
+                          >
+                            <div>
+                              <span className="frequent-index">
+                                {index + 1}
+                              </span>
+
+                              <strong>
+                                {getRuleProducts(
+                                  item.items
+                                )}
+                              </strong>
+                            </div>
+
+                            <em>
+                              Support{" "}
+                              {formatPercent(
+                                item.support
+                              )}
+                            </em>
+                          </div>
+                        ))}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="smart-analysis__empty">
+                    Chưa tìm thấy sản phẩm phổ biến hoặc
+                    luật kết hợp.
+                  </div>
+                )}
+
+                {aprioriResult.warning && (
+                  <div className="analysis-warning">
+                    {aprioriResult.warning}
+                  </div>
+                )}
+              </>
+            ) : (
+              <div className="smart-analysis__empty">
+                Chưa có lần chạy Apriori nào.
+              </div>
+            )}
+          </article>
+
+          {/* KẾT QUẢ FORECASTING */}
+          <article className="smart-panel smart-panel--forecast">
+            <div className="smart-panel__header">
+              <div>
+                <span className="smart-panel__type">
+                  Forecasting
+                </span>
+
+                <h3>Dự báo doanh thu</h3>
+              </div>
+
+              <small>
+                {formatMiningDate(
+                  forecasting?.created_at
+                )}
+              </small>
+            </div>
+
+            {forecasting ? (
+              <>
+                <p className="forecast-summary">
+                  {forecastSummary}
+                </p>
+
+                {forecastItems.length > 0 ? (
+                  <div className="forecast-mini-list">
+                    {forecastItems
+                      .slice(0, 3)
+                      .map((item, index) => (
+                        <div
+                          key={
+                            item.date || index
+                          }
+                        >
+                          <span>
+                            {item.date ||
+                              `Ngày ${
+                                index + 1
+                              }`}
+                          </span>
+
+                          <strong>
+                            {formatCurrency(
+                              getForecastRevenue(
+                                item
+                              )
+                            )}
+                          </strong>
+                        </div>
+                      ))}
+                  </div>
+                ) : (
+                  <div className="smart-analysis__empty">
+                    Chưa có dữ liệu doanh thu dự báo.
+                  </div>
+                )}
+              </>
+            ) : (
+              <div className="forecast-empty">
+                <div className="forecast-empty__icon">
+                  <TrendingUp size={25} />
+                </div>
+
+                <strong>
+                  Chưa có kết quả dự báo
+                </strong>
+
+                <p>
+                  Hãy sang trang Data Mining để chạy
+                  Forecasting.
+                </p>
+
+                <Link to="/mining">
+                  Chạy Forecasting
+                  <ChevronRight size={15} />
+                </Link>
+              </div>
+            )}
+          </article>
+        </div>
+      )}
+    </section>
   );
 }
 
@@ -446,16 +817,27 @@ export default function Dashboard() {
 
   const [orders, setOrders] = useState([]);
 
+  const [miningHighlights, setMiningHighlights] =
+    useState({
+      apriori: null,
+      forecasting: null,
+    });
+
   const [loadingSummary, setLoadingSummary] =
     useState(false);
 
   const [loadingOrders, setLoadingOrders] =
     useState(false);
 
+  const [loadingMining, setLoadingMining] =
+    useState(false);
+
   const [summaryError, setSummaryError] =
     useState("");
 
   const [ordersError, setOrdersError] = useState("");
+
+  const [miningError, setMiningError] = useState("");
 
   function handlePeriodChange(newPeriod) {
     setPeriod(newPeriod);
@@ -484,7 +866,7 @@ export default function Dashboard() {
     }
 
     if (period === "month") {
-      return /^\d{4}-\d{2}$/.test(selectedDate);
+      return /^\d{2}$/.test(selectedDate);
     }
 
     if (period === "year") {
@@ -513,6 +895,7 @@ export default function Dashboard() {
           await dashboardApi.getDashboardSummary(params);
 
         const result = response?.data;
+        console.log("result",result)
 
         if (!result?.success) {
           throw new Error(
@@ -522,6 +905,7 @@ export default function Dashboard() {
         }
 
         const apiData = result?.data || {};
+        console.log("apiData",apiData)
 
         const normalizedChartData = (
           apiData.chart_data || []
@@ -539,7 +923,6 @@ export default function Dashboard() {
         if (!isMounted) {
           return;
         }
-
         setDashboardData(apiData);
         setChartData(normalizedChartData);
       } catch (error) {
@@ -573,6 +956,65 @@ export default function Dashboard() {
       isMounted = false;
     };
   }, [period, selectedDate]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadMiningHighlights() {
+      try {
+        setLoadingMining(true);
+        setMiningError("");
+
+        const response =
+          await dataMiningApi.getHighlights();
+        console.log("response",response)
+        const result = response?.data;
+
+        if (!result?.success) {
+          throw new Error(
+            result?.message ||
+            "Không thể tải kết quả Data Mining"
+          );
+        }
+
+        if (!isMounted) {
+          return;
+        }
+
+        setMiningHighlights({
+          apriori: result?.data?.apriori || null,
+          forecasting:
+            result?.data?.forecasting || null,
+        });
+      } catch (error) {
+        if (!isMounted) {
+          return;
+        }
+
+        setMiningError(
+          getAxiosErrorMessage(
+            error,
+            "Không thể tải kết quả Data Mining"
+          )
+        );
+
+        setMiningHighlights({
+          apriori: null,
+          forecasting: null,
+        });
+      } finally {
+        if (isMounted) {
+          setLoadingMining(false);
+        }
+      }
+    }
+
+    loadMiningHighlights();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   useEffect(() => {
     let isMounted = true;
@@ -692,6 +1134,7 @@ export default function Dashboard() {
   }, [orders, searchTerm]);
 
   const summary = useMemo(() => {
+    console.log("dashboardData",dashboardData?.data)
     if (!dashboardData) {
       return {
         totalRevenue: 0,
@@ -863,13 +1306,22 @@ export default function Dashboard() {
         )}
 
         {period === "month" && (
-          <input
-            type="month"
+          <select
             value={selectedDate}
             onChange={(event) =>
               setSelectedDate(event.target.value)
             }
-          />
+          >
+            {Array.from({ length: 12 }).map((_, index) => {
+              const month = String(index + 1).padStart(2, "0");
+
+              return (
+                <option key={month} value={month}>
+                  Tháng {month}
+                </option>
+              );
+            })}
+          </select>
         )}
 
         {period === "year" && (
@@ -1180,6 +1632,12 @@ export default function Dashboard() {
           </div>
         </article>
       </section>
+
+      <SmartAnalysisCard
+        miningHighlights={miningHighlights}
+        loading={loadingMining}
+        error={miningError}
+      />
 
       <section className="dashboard-card orders-section">
         <div className="orders-header">

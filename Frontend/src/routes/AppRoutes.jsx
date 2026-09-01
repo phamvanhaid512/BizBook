@@ -7,8 +7,9 @@ import Orders from "../pages/Orders";
 import Expenses from "../pages/Expenses";
 import BusinessTables from "../pages/BusinessTables";
 import Menu from "../pages/User/Menu";
-import Mining from "../pages/Mining";
-import AIAgent from "../pages/AIAgent";
+import DataMiningPage from "../pages/DataMiningPage";
+import AIChatPage from "../pages/AIChatPage";
+// import GlobalAIChat from "../pages/GlobalAIChat"
 import PrintQR from "../pages/admin/PrintQR";
 import OrderSuccess from "../pages/User/OrderSuccess";
 import { ToastContainer } from "react-toastify";
@@ -38,8 +39,8 @@ function AppRoutes() {
         <Route path="/orders" element={<PrivatePage><Orders /></PrivatePage>} />
         <Route path="/expenses" element={<PrivatePage><Expenses /></PrivatePage>} />
         <Route path="/business-tables" element={<PrivatePage><BusinessTables /></PrivatePage>} />
-        <Route path="/mining" element={<PrivatePage><Mining /></PrivatePage>} />
-        <Route path="/ai-agent" element={<PrivatePage><AIAgent /></PrivatePage>} />
+        <Route path="/mining" element={<PrivatePage><DataMiningPage /></PrivatePage>} />
+        {/* <Route path="/ai-agent" element={<PrivatePage><AIChatPage /></PrivatePage>} /> */}
 
         <Route path="/menu/table/:tableId" element={<Menu />} />
         <Route path="/admin/print-qr" element={<PrintQR />} />

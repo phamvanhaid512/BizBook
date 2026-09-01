@@ -15,7 +15,7 @@ function Sidebar() {
     { path: "/expenses", label: "Chi phí", icon: "💸" },
     { path: "/business-tables", label: "Bàn / QR", icon: "📱" },
     { path: "/mining", label: "Data Mining", icon: "⛏️" },
-    { path: "/ai-agent", label: "AI Agent", icon: "🤖" },
+    // { path: "/ai-agent", label: "AI Agent", icon: "🤖" },
   ];
 
   const handleLogout = () => {
@@ -30,7 +30,7 @@ function Sidebar() {
           <div className="brand-icon">B</div>
 
           <div className="brand-text">
-            <h2>BizBook</h2>
+            <h2 className="title-sidebar">BizBook</h2>
             <p>Business Manager</p>
           </div>
         </div>

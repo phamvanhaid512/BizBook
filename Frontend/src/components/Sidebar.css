@@ -11,7 +11,9 @@
   position: sticky;
   top: 0;
 }
-
+.title-sidebar {
+  color: cornflowerblue;
+}
 .sidebar-brand {
   display: flex;
   align-items: center;

@@ -1,984 +1,570 @@
-import { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
-  ArrowDownRight,
-  ArrowUpRight,
-  CalendarDays,
-  ChevronRight,
-  CircleDollarSign,
-  Download,
+  DollarSign,
+  Plus,
+  Trash2,
+  Edit2,
+  Calendar,
   Filter,
-  PackageCheck,
-  Search,
-  ShoppingBag,
-  TrendingUp,
-  WalletCards,
+  PieChart as PieChartIcon,
+  RefreshCw,
+  UploadCloud,
+  AlertTriangle,
+  FileText,
+  LoaderCircle,
   X,
 } from "lucide-react";
+import { toast } from "react-toastify";
+import expenseApi from "../api/expenseApi";
+import "./ExpensesPage.css";
 
-import {
-  Area,
-  AreaChart,
-  CartesianGrid,
-  Legend,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
+export default function ExpensesPage() {
+  const [expenses, setExpenses] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [summary, setSummary] = useState({ total_amount: 0, by_category: [] });
+  const [loading, setLoading] = useState(false);
 
-import "./Expenses.css";
+  // Bộ lọc
+  const [filters, setFilters] = useState({
+    start_date: "2026-07-01",
+    end_date: "2026-09-30",
+    category_id: "",
+    status: "CONFIRMED",
+  });
 
-const currencyFormatter = new Intl.NumberFormat("vi-VN", {
-  style: "currency",
-  currency: "VND",
-  maximumFractionDigits: 0,
-});
+  // Modal State
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingId, setEditingId] = useState(null);
+  const [formData, setFormData] = useState({
+    category_id: "",
+    expense_date: new Date().toISOString().split("T")[0],
+    amount: "",
+    supplier_name: "",
+    description: "",
+    status: "CONFIRMED",
+    receipt_image: null,
+  });
 
-const dateTimeFormatter = new Intl.DateTimeFormat("vi-VN", {
-  day: "2-digit",
-  month: "2-digit",
-  year: "numeric",
-  hour: "2-digit",
-  minute: "2-digit",
-});
-
-const periods = [
-  { value: "today", label: "Hôm nay" },
-  { value: "week", label: "7 ngày" },
-  { value: "month", label: "Tháng này" },
-];
-
-const sampleOrders = [
-  {
-    id: 1,
-    code: "ORD-E3C6B6F6",
-    createdAt: "2026-07-10T08:20:00",
-    customer: "Khách tại quầy",
-    orderType: "Tại quán",
-    revenue: 285000,
-    productCost: 142000,
-    discount: 15000,
-    otherCost: 8000,
-    status: "completed",
-    items: [
-      {
-        id: 1,
-        name: "Cà phê sữa",
-        quantity: 2,
-        sellingPrice: 35000,
-        costPrice: 15000,
-      },
-      {
-        id: 2,
-        name: "Trà đào cam sả",
-        quantity: 3,
-        sellingPrice: 45000,
-        costPrice: 22000,
-      },
-      {
-        id: 3,
-        name: "Bánh tiramisu",
-        quantity: 2,
-        sellingPrice: 40000,
-        costPrice: 23000,
-      },
-    ],
-  },
-  {
-    id: 2,
-    code: "ORD-4378F203",
-    createdAt: "2026-07-10T07:55:00",
-    customer: "Nguyễn Minh Anh",
-    orderType: "Mang đi",
-    revenue: 175000,
-    productCost: 92000,
-    discount: 10000,
-    otherCost: 5000,
-    status: "completed",
-    items: [
-      {
-        id: 1,
-        name: "Trà sữa trân châu",
-        quantity: 2,
-        sellingPrice: 50000,
-        costPrice: 28000,
-      },
-      {
-        id: 2,
-        name: "Bánh croissant",
-        quantity: 1,
-        sellingPrice: 45000,
-        costPrice: 21000,
-      },
-      {
-        id: 3,
-        name: "Cà phê đen",
-        quantity: 1,
-        sellingPrice: 30000,
-        costPrice: 15000,
-      },
-    ],
-  },
-  {
-    id: 3,
-    code: "ORD-D667CA1E",
-    createdAt: "2026-07-10T07:22:00",
-    customer: "Khách QR - Bàn 05",
-    orderType: "Tại quán",
-    revenue: 96000,
-    productCost: 62000,
-    discount: 12000,
-    otherCost: 3000,
-    status: "completed",
-    items: [
-      {
-        id: 1,
-        name: "Matcha latte",
-        quantity: 2,
-        sellingPrice: 48000,
-        costPrice: 31000,
-      },
-    ],
-  },
-  {
-    id: 4,
-    code: "ORD-82C49D11",
-    createdAt: "2026-07-10T06:48:00",
-    customer: "Trần Quốc Huy",
-    orderType: "Giao hàng",
-    revenue: 340000,
-    productCost: 205000,
-    discount: 30000,
-    otherCost: 45000,
-    status: "completed",
-    items: [
-      {
-        id: 1,
-        name: "Combo cà phê văn phòng",
-        quantity: 5,
-        sellingPrice: 68000,
-        costPrice: 41000,
-      },
-    ],
-  },
-];
-
-const chartData = [
-  {
-    label: "04/07",
-    revenue: 2400000,
-    cost: 1450000,
-    profit: 950000,
-  },
-  {
-    label: "05/07",
-    revenue: 3100000,
-    cost: 1840000,
-    profit: 1260000,
-  },
-  {
-    label: "06/07",
-    revenue: 2850000,
-    cost: 1720000,
-    profit: 1130000,
-  },
-  {
-    label: "07/07",
-    revenue: 3680000,
-    cost: 2150000,
-    profit: 1530000,
-  },
-  {
-    label: "08/07",
-    revenue: 3320000,
-    cost: 2020000,
-    profit: 1300000,
-  },
-  {
-    label: "09/07",
-    revenue: 4210000,
-    cost: 2470000,
-    profit: 1740000,
-  },
-  {
-    label: "10/07",
-    revenue: 3890000,
-    cost: 2290000,
-    profit: 1600000,
-  },
-];
-
-function calculateOrder(order) {
-  const totalCost =
-    Number(order.productCost || 0) +
-    Number(order.otherCost || 0);
-
-  const netRevenue =
-    Number(order.revenue || 0) -
-    Number(order.discount || 0);
-
-  const profit = netRevenue - totalCost;
-
-  const profitMargin =
-    netRevenue > 0 ? (profit / netRevenue) * 100 : 0;
-
-  return {
-    ...order,
-    netRevenue,
-    totalCost,
-    profit,
-    profitMargin,
-  };
-}
-
-function formatCurrency(value) {
-  return currencyFormatter.format(Number(value || 0));
-}
-
-function formatCompactCurrency(value) {
-  const number = Number(value || 0);
-
-  if (number >= 1_000_000_000) {
-    return `${(number / 1_000_000_000).toFixed(1)} tỷ`;
-  }
-
-  if (number >= 1_000_000) {
-    return `${(number / 1_000_000).toFixed(1)} tr`;
-  }
-
-  if (number >= 1_000) {
-    return `${Math.round(number / 1_000)} nghìn`;
-  }
-
-  return number.toString();
-}
-
-function getProfitLevel(order) {
-  if (order.profit < 0) {
-    return {
-      label: "Đang lỗ",
-      className: "danger",
-    };
-  }
-
-  if (order.profitMargin < 15) {
-    return {
-      label: "Lãi thấp",
-      className: "warning",
-    };
-  }
-
-  return {
-    label: "Có lãi",
-    className: "success",
-  };
-}
-
-export default function Expenses() {
-  const [period, setPeriod] = useState("week");
-  const [searchTerm, setSearchTerm] = useState("");
-  const [selectedOrder, setSelectedOrder] = useState(null);
-  const [orders, setOrders] = useState([]);
+  // Trạng thái quét OCR trong Modal
+  const fileInputRef = useRef(null);
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [previewUrl, setPreviewUrl] = useState("");
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [ocrWarning, setOcrWarning] = useState("");
 
   useEffect(() => {
-    const normalizedOrders = sampleOrders.map(calculateOrder);
-    setOrders(normalizedOrders);
+    fetchCategories();
   }, []);
 
-  const filteredOrders = useMemo(() => {
-    const normalizedSearch = searchTerm
-      .trim()
-      .toLowerCase();
+  useEffect(() => {
+    fetchExpensesData();
+  }, [filters]);
 
-    if (!normalizedSearch) {
-      return orders;
+  const fetchCategories = async () => {
+    try {
+      const res = await expenseApi.getCategories();
+      setCategories(res.data?.data || []);
+    } catch (err) {
+      toast.error("Không thể lấy danh mục chi phí.");
+    }
+  };
+
+  const fetchExpensesData = async () => {
+    setLoading(true);
+    try {
+      const expRes = await expenseApi.getExpenses(filters);
+      setExpenses(expRes.data?.data || []);
+
+      if (filters.start_date && filters.end_date) {
+        const sumRes = await expenseApi.getSummary({
+          start_date: filters.start_date,
+          end_date: filters.end_date,
+        });
+        setSummary(sumRes.data?.data || { total_amount: 0, by_category: [] });
+      }
+    } catch (err) {
+      toast.error("Không thể tải dữ liệu sổ chi phí.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Mở modal Thêm/Sửa
+  const handleOpenModal = (expense = null) => {
+    setSelectedFile(null);
+    setPreviewUrl("");
+    setOcrWarning("");
+    if (fileInputRef.current) fileInputRef.current.value = "";
+
+    if (expense) {
+      setEditingId(expense.id);
+      setFormData({
+        category_id: expense.category,
+        expense_date: expense.expense_date,
+        amount: expense.amount,
+        supplier_name: expense.supplier_name || "",
+        description: expense.description || "",
+        status: expense.status || "CONFIRMED",
+        receipt_image: expense.receipt_image || null,
+      });
+    } else {
+      setEditingId(null);
+      setFormData({
+        category_id: categories[0]?.id || "",
+        expense_date: new Date().toISOString().split("T")[0],
+        amount: "",
+        supplier_name: "",
+        description: "",
+        status: "CONFIRMED",
+        receipt_image: null,
+      });
+    }
+    setIsModalOpen(true);
+  };
+
+  // Xử lý tải ảnh và quét OCR tự động điền form
+  const handleFileChange = async (e) => {
+    const file = e.target.files?.[0];
+    console.log("file__________",file)
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      toast.warning("Chỉ hỗ trợ file ảnh định dạng JPG, PNG.");
+      return;
     }
 
-    return orders.filter((order) => {
-      return (
-        order.code.toLowerCase().includes(normalizedSearch) ||
-        order.customer
-          .toLowerCase()
-          .includes(normalizedSearch)
-      );
-    });
-  }, [orders, searchTerm]);
+    setSelectedFile(file);
+    setPreviewUrl(URL.createObjectURL(file));
+    setOcrWarning("");
+    setIsAnalyzing(true);
 
-  const summary = useMemo(() => {
-    const totalRevenue = orders.reduce(
-      (total, order) => total + order.netRevenue,
-      0
-    );
+    try {
+      const payload = new FormData();
+      payload.append("file", file);
 
-    const totalCost = orders.reduce(
-      (total, order) => total + order.totalCost,
-      0
-    );
+      // Gọi API OCR bóc tách văn bản
+      const response = await expenseApi.analyzeDocument(payload);
+      const data = response.data?.data;
+      const parsed = data?.parsed_data || {};
 
-    const totalProfit = orders.reduce(
-      (total, order) => total + order.profit,
-      0
-    );
+      // Tự động điền dữ liệu trích xuất vào form
+      setFormData((prev) => ({
+        ...prev,
+        expense_date: parsed.expense_date || prev.expense_date,
+        amount: parsed.amount > 0 ? parsed.amount : prev.amount,
+        supplier_name: parsed.supplier_name || prev.supplier_name,
+        description: parsed.description || prev.description,
+        receipt_image: data?.image_name || file.name,
+      }));
 
-    const profitMargin =
-      totalRevenue > 0
-        ? (totalProfit / totalRevenue) * 100
-        : 0;
+      // Bật cảnh báo nếu ảnh mờ/lóa hoặc điểm tin cậy thấp (Human-in-the-loop)
+      if (data?.anomaly_detected || data?.needs_human_review) {
+        const reasons = data?.anomaly_reasons?.join(", ") || "Chất lượng ảnh chưa tối ưu";
+        setOcrWarning(`Cảnh báo (${data?.confidence_score}%): ${reasons}. Vui lòng kiểm tra lại.`);
+        toast.warn("Đã bóc tách dữ liệu! Hãy kiểm tra lại trước khi lưu.");
+      } else {
+        toast.success(`Quét thành công! Độ tin cậy ${data?.confidence_score}%`);
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Không thể phân tích ảnh này.");
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
 
-    return {
-      orderCount: orders.length,
-      totalRevenue,
-      totalCost,
-      totalProfit,
-      profitMargin,
-    };
-  }, [orders]);
+  // Xử lý gửi lưu khoản chi
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!formData.category_id || !formData.amount || !formData.expense_date) {
+      toast.warning("Vui lòng điền đầy đủ các thông tin bắt buộc!");
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const payload = {
+        ...formData,
+        amount: Number(formData.amount),
+        receipt_image: formData.receipt_image || selectedFile?.name || null,
+      };
+
+      if (editingId) {
+        await expenseApi.updateExpense(editingId, payload);
+        toast.success("Cập nhật khoản chi thành công!");
+      } else {
+        await expenseApi.createExpense(payload);
+        toast.success("Ghi nhận khoản chi mới thành công!");
+      }
+      setIsModalOpen(false);
+      fetchExpensesData();
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Có lỗi xảy ra khi lưu.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleDelete = async (id) => {
+    if (!window.confirm("Bạn có chắc chắn muốn xóa khoản chi này?")) return;
+    try {
+      await expenseApi.deleteExpense(id);
+      toast.success("Xóa khoản chi thành công!");
+      fetchExpensesData();
+    } catch (err) {
+      toast.error("Không thể xóa khoản chi.");
+    }
+  };
 
   return (
-    <main className="cost-dashboard">
-      <header className="cost-dashboard__header">
+    <div className="expenses-page">
+      {/* Header */}
+      <div className="expenses-header">
         <div>
-          <span className="cost-dashboard__eyebrow">
-            Báo cáo hoạt động bán hàng
-          </span>
-
-          <h1>Chi phí và lợi nhuận</h1>
-
-          <p>
-            Theo dõi hiệu quả tài chính của từng đơn hàng
-            theo thời gian thực.
-          </p>
+          <h2>Quản Lý Sổ Chi Phí & Chứng Từ</h2>
+          <p>Tự động bóc tách hóa đơn OCR và theo dõi dòng tiền ra của quán</p>
         </div>
+        <button className="btn-primary" onClick={() => handleOpenModal()}>
+          <Plus size={18} /> Ghi nhận chi phí
+        </button>
+      </div>
 
-        <div className="header-actions">
-          <button className="secondary-action">
-            <Download size={18} />
-            Xuất báo cáo
-          </button>
-
-          <button className="primary-action">
-            <CalendarDays size={18} />
-            10/07/2026
-          </button>
-        </div>
-      </header>
-
-      <section className="dashboard-toolbar">
-        <div
-          className="period-tabs"
-          role="tablist"
-          aria-label="Chọn khoảng thời gian"
-        >
-          {periods.map((item) => (
-            <button
-              type="button"
-              role="tab"
-              aria-selected={period === item.value}
-              key={item.value}
-              className={
-                period === item.value ? "active" : ""
-              }
-              onClick={() => setPeriod(item.value)}
-            >
-              {item.label}
-            </button>
-          ))}
-        </div>
-
-        <div className="toolbar-meta">
-          Cập nhật lần cuối lúc 15:22
-        </div>
-      </section>
-
-      <section className="kpi-grid">
-        <KpiCard
-          label="Doanh thu thuần"
-          value={formatCurrency(summary.totalRevenue)}
-          change="+12,4%"
-          trend="up"
-          icon={<CircleDollarSign size={22} />}
-          variant="primary"
-        />
-
-        <KpiCard
-          label="Tổng chi phí"
-          value={formatCurrency(summary.totalCost)}
-          change="+6,8%"
-          trend="up"
-          icon={<WalletCards size={22} />}
-          variant="neutral"
-        />
-
-        <KpiCard
-          label="Lợi nhuận"
-          value={formatCurrency(summary.totalProfit)}
-          change="+18,2%"
-          trend="up"
-          icon={<TrendingUp size={22} />}
-          variant="success"
-        />
-
-        <KpiCard
-          label="Biên lợi nhuận"
-          value={`${summary.profitMargin.toFixed(1)}%`}
-          change="+2,1%"
-          trend="up"
-          icon={<PackageCheck size={22} />}
-          variant="purple"
-        />
-      </section>
-
-      <section className="analytics-grid">
-        <article className="dashboard-card chart-card">
-          <div className="card-heading">
-            <div>
-              <h2>Xu hướng tài chính</h2>
-              <p>
-                So sánh doanh thu, chi phí và lợi nhuận
-              </p>
-            </div>
-
-            <button className="icon-action">
-              <Filter size={18} />
-            </button>
+      {/* KPI Cards Summary */}
+      <div className="expenses-kpi-grid">
+        <div className="kpi-card">
+          <div className="kpi-icon bg-red">
+            <DollarSign size={22} />
           </div>
-
-          <div className="chart-wrapper">
-            <ResponsiveContainer
-              width="100%"
-              height={320}
-            >
-              <AreaChart
-                data={chartData}
-                margin={{
-                  top: 10,
-                  right: 10,
-                  left: -8,
-                  bottom: 0,
-                }}
-              >
-                <defs>
-                  <linearGradient
-                    id="revenueFill"
-                    x1="0"
-                    y1="0"
-                    x2="0"
-                    y2="1"
-                  >
-                    <stop
-                      offset="5%"
-                      stopColor="#2563eb"
-                      stopOpacity={0.25}
-                    />
-                    <stop
-                      offset="95%"
-                      stopColor="#2563eb"
-                      stopOpacity={0}
-                    />
-                  </linearGradient>
-
-                  <linearGradient
-                    id="profitFill"
-                    x1="0"
-                    y1="0"
-                    x2="0"
-                    y2="1"
-                  >
-                    <stop
-                      offset="5%"
-                      stopColor="#10b981"
-                      stopOpacity={0.2}
-                    />
-                    <stop
-                      offset="95%"
-                      stopColor="#10b981"
-                      stopOpacity={0}
-                    />
-                  </linearGradient>
-                </defs>
-
-                <CartesianGrid
-                  strokeDasharray="4 4"
-                  vertical={false}
-                  stroke="#e9edf5"
-                />
-
-                <XAxis
-                  dataKey="label"
-                  tickLine={false}
-                  axisLine={false}
-                  tick={{
-                    fill: "#7b8496",
-                    fontSize: 12,
-                  }}
-                />
-
-                <YAxis
-                  tickLine={false}
-                  axisLine={false}
-                  tickFormatter={formatCompactCurrency}
-                  tick={{
-                    fill: "#7b8496",
-                    fontSize: 12,
-                  }}
-                />
-
-                <Tooltip
-                  formatter={(value) =>
-                    formatCurrency(value)
-                  }
-                  contentStyle={{
-                    borderRadius: 14,
-                    border: "1px solid #e5e9f2",
-                    boxShadow:
-                      "0 14px 34px rgba(15, 23, 42, 0.12)",
-                  }}
-                />
-
-                <Legend />
-
-                <Area
-                  type="monotone"
-                  dataKey="revenue"
-                  name="Doanh thu"
-                  stroke="#2563eb"
-                  strokeWidth={3}
-                  fill="url(#revenueFill)"
-                />
-
-                <Area
-                  type="monotone"
-                  dataKey="cost"
-                  name="Chi phí"
-                  stroke="#f59e0b"
-                  strokeWidth={2.5}
-                  fill="transparent"
-                />
-
-                <Area
-                  type="monotone"
-                  dataKey="profit"
-                  name="Lợi nhuận"
-                  stroke="#10b981"
-                  strokeWidth={3}
-                  fill="url(#profitFill)"
-                />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
-        </article>
-
-        <article className="dashboard-card insight-card">
-          <div className="card-heading">
-            <div>
-              <h2>Hiệu quả kinh doanh</h2>
-              <p>Tóm tắt trong khoảng đã chọn</p>
-            </div>
-          </div>
-
-          <div className="profit-ring">
-            <div className="profit-ring__inner">
-              <span>Biên lợi nhuận</span>
-              <strong>
-                {summary.profitMargin.toFixed(1)}%
-              </strong>
-              <small>Mức tốt</small>
-            </div>
-          </div>
-
-          <div className="insight-list">
-            <InsightRow
-              label="Giá trị đơn trung bình"
-              value={formatCurrency(
-                summary.totalRevenue /
-                  Math.max(summary.orderCount, 1)
-              )}
-            />
-
-            <InsightRow
-              label="Chi phí trung bình/đơn"
-              value={formatCurrency(
-                summary.totalCost /
-                  Math.max(summary.orderCount, 1)
-              )}
-            />
-
-            <InsightRow
-              label="Đơn hàng có lãi"
-              value={`${
-                orders.filter(
-                  (order) => order.profit > 0
-                ).length
-              }/${orders.length}`}
-            />
-          </div>
-
-          <div className="business-insight">
-            <div className="business-insight__icon">
-              <TrendingUp size={19} />
-            </div>
-
-            <div>
-              <strong>Hoạt động đang tích cực</strong>
-              <p>
-                Lợi nhuận tăng nhanh hơn chi phí trong kỳ
-                hiện tại.
-              </p>
-            </div>
-          </div>
-        </article>
-      </section>
-
-      <section className="dashboard-card orders-section">
-        <div className="orders-header">
           <div>
-            <h2>Chi tiết theo đơn hàng</h2>
-            <p>
-              Kiểm tra doanh thu, chi phí và lợi nhuận
-              của từng đơn.
-            </p>
-          </div>
-
-          <div className="orders-tools">
-            <label className="search-box">
-              <Search size={18} />
-
-              <input
-                type="search"
-                value={searchTerm}
-                placeholder="Tìm mã đơn hoặc khách hàng"
-                onChange={(event) =>
-                  setSearchTerm(event.target.value)
-                }
-              />
-            </label>
-
-            <button className="filter-button">
-              <Filter size={18} />
-              Bộ lọc
-            </button>
+            <span className="kpi-label">Tổng chi tiêu (Thời gian lọc)</span>
+            <h3 className="kpi-val text-red">
+              {Number(summary.total_amount || 0).toLocaleString("vi-VN")} VNĐ
+            </h3>
           </div>
         </div>
 
-        <div className="orders-table-wrapper">
-          <table className="orders-table">
-            <thead>
-              <tr>
-                <th>Đơn hàng</th>
-                <th>Thời gian</th>
-                <th>Doanh thu thuần</th>
-                <th>Chi phí</th>
-                <th>Lợi nhuận</th>
-                <th>Biên lợi nhuận</th>
-                <th>Trạng thái</th>
-                <th aria-label="Chi tiết" />
-              </tr>
-            </thead>
-
-            <tbody>
-              {filteredOrders.map((order) => {
-                const profitLevel =
-                  getProfitLevel(order);
-
-                return (
-                  <tr
-                    key={order.id}
-                    onClick={() =>
-                      setSelectedOrder(order)
-                    }
-                  >
-                    <td>
-                      <div className="order-identity">
-                        <div className="order-icon">
-                          <ShoppingBag size={17} />
-                        </div>
-
-                        <div>
-                          <strong>{order.code}</strong>
-                          <span>{order.customer}</span>
-                        </div>
-                      </div>
-                    </td>
-
-                    <td>
-                      <div className="date-cell">
-                        <strong>
-                          {dateTimeFormatter
-                            .format(
-                              new Date(order.createdAt)
-                            )
-                            .split(",")[0]}
-                        </strong>
-
-                        <span>
-                          {dateTimeFormatter
-                            .format(
-                              new Date(order.createdAt)
-                            )
-                            .split(",")[1]
-                            ?.trim()}
-                        </span>
-                      </div>
-                    </td>
-
-                    <td className="money-cell">
-                      {formatCurrency(order.netRevenue)}
-                    </td>
-
-                    <td className="money-cell cost">
-                      {formatCurrency(order.totalCost)}
-                    </td>
-
-                    <td
-                      className={`money-cell ${
-                        order.profit >= 0
-                          ? "positive"
-                          : "negative"
-                      }`}
-                    >
-                      {formatCurrency(order.profit)}
-                    </td>
-
-                    <td>
-                      <div className="margin-cell">
-                        <div className="margin-track">
-                          <span
-                            style={{
-                              width: `${Math.min(
-                                Math.max(
-                                  order.profitMargin,
-                                  0
-                                ),
-                                100
-                              )}%`,
-                            }}
-                          />
-                        </div>
-
-                        <strong>
-                          {order.profitMargin.toFixed(1)}%
-                        </strong>
-                      </div>
-                    </td>
-
-                    <td>
-                      <span
-                        className={`status-pill ${profitLevel.className}`}
-                      >
-                        {profitLevel.label}
-                      </span>
-                    </td>
-
-                    <td>
-                      <button
-                        type="button"
-                        className="row-action"
-                        aria-label={`Xem ${order.code}`}
-                      >
-                        <ChevronRight size={18} />
-                      </button>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+        <div className="kpi-card">
+          <div className="kpi-icon bg-blue">
+            <PieChartIcon size={22} />
+          </div>
+          <div>
+            <span className="kpi-label">Số khoản chi phát sinh</span>
+            <h3 className="kpi-val">{expenses.length} khoản</h3>
+          </div>
         </div>
-      </section>
 
-      {selectedOrder && (
-        <>
-          <div
-            className="drawer-overlay"
-            onClick={() => setSelectedOrder(null)}
+        <div className="kpi-card">
+          <div className="kpi-icon bg-orange">
+            <Filter size={22} />
+          </div>
+          <div>
+            <span className="kpi-label">Hạng mục chi lớn nhất</span>
+            <h3 className="kpi-val">
+              {summary.by_category?.[0]?.category__name || "Chưa có"}
+            </h3>
+          </div>
+        </div>
+      </div>
+
+      {/* Filter Bar */}
+      <div className="expenses-filter-bar">
+        <div className="filter-group">
+          <Calendar size={16} />
+          <span>Từ:</span>
+          <input
+            type="date"
+            value={filters.start_date}
+            onChange={(e) =>
+              setFilters({ ...filters, start_date: e.target.value })
+            }
           />
+          <span>Đến:</span>
+          <input
+            type="date"
+            value={filters.end_date}
+            onChange={(e) =>
+              setFilters({ ...filters, end_date: e.target.value })
+            }
+          />
+        </div>
 
-          <aside className="order-drawer">
-            <div className="drawer-header">
-              <div>
-                <span>Chi tiết đơn hàng</span>
-                <h2>{selectedOrder.code}</h2>
-              </div>
+        <div className="filter-group">
+          <select
+            value={filters.category_id}
+            onChange={(e) =>
+              setFilters({ ...filters, category_id: e.target.value })
+            }
+          >
+            <option value="">-- Tất cả danh mục --</option>
+            {categories.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
+            ))}
+          </select>
+        </div>
 
+        <button className="btn-refresh" onClick={fetchExpensesData} title="Tải lại">
+          <RefreshCw size={16} className={loading ? "spin" : ""} />
+        </button>
+      </div>
+
+      {/* Data Table */}
+      <div className="expenses-table-wrapper">
+        <table className="expenses-table">
+          <thead>
+            <tr>
+              <th>Ngày chi</th>
+              <th>Danh mục</th>
+              <th>Nhà cung cấp / Đơn vị</th>
+              <th>Mô tả chi tiết</th>
+              <th>Số tiền (VNĐ)</th>
+              <th>Trạng thái</th>
+              <th>Chứng từ</th>
+              <th className="text-center">Thao tác</th>
+            </tr>
+          </thead>
+          <tbody>
+            {loading ? (
+              <tr>
+                <td colSpan="8" className="text-center py-4">
+                  Đang tải dữ liệu sổ chi phí...
+                </td>
+              </tr>
+            ) : expenses.length === 0 ? (
+              <tr>
+                <td colSpan="8" className="text-center py-4 text-muted">
+                  Không tìm thấy khoản chi nào trong khoảng thời gian này.
+                </td>
+              </tr>
+            ) : (
+              expenses.map((item) => (
+                <tr key={item.id}>
+                  <td><strong>{item.expense_date}</strong></td>
+                  <td>
+                    <span className="category-tag">
+                      {item.category_name || "Chi phí chung"}
+                    </span>
+                  </td>
+                  <td>{item.supplier_name || "—"}</td>
+                  <td>{item.description || "—"}</td>
+                  <td className="text-red font-weight-bold">
+                    {Number(item.amount).toLocaleString("vi-VN")} đ
+                  </td>
+                  <td>
+                    <span className={`status-badge status-${item.status.toLowerCase()}`}>
+                      {item.status === "CONFIRMED"
+                        ? "Đã xác nhận"
+                        : item.status === "DRAFT"
+                        ? "Bản nháp"
+                        : "Đã hủy"}
+                    </span>
+                  </td>
+                  <td>
+                    {item.receipt_image ? (
+                      <span className="receipt-link" title={item.receipt_image}>
+                        <FileText size={14} /> {item.receipt_image.split("/").pop()}
+                      </span>
+                    ) : (
+                      <span className="text-muted">Không có</span>
+                    )}
+                  </td>
+                  <td className="text-center actions-cell">
+                    <button
+                      className="btn-icon edit"
+                      onClick={() => handleOpenModal(item)}
+                      title="Sửa"
+                    >
+                      <Edit2 size={15} />
+                    </button>
+                    <button
+                      className="btn-icon delete"
+                      onClick={() => handleDelete(item.id)}
+                      title="Xóa"
+                    >
+                      <Trash2 size={15} />
+                    </button>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {/* ======================================================= */}
+      {/* MODAL GHI NHẬN / SỬA CHI PHÍ (TÍCH HỢP QUÉT ẢNH OCR)    */}
+      {/* ======================================================= */}
+      {isModalOpen && (
+        <div className="modal-overlay">
+          <div className="modal-box" style={{ maxWidth: "520px", width: "100%" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
+              <h3 style={{ margin: 0 }}>
+                {editingId ? "Chỉnh Sửa Khoản Chi" : "Ghi Nhận Khoản Chi Mới"}
+              </h3>
               <button
                 type="button"
-                className="drawer-close"
-                onClick={() => setSelectedOrder(null)}
+                onClick={() => setIsModalOpen(false)}
+                style={{ border: "none", background: "none", cursor: "pointer", color: "#64748b" }}
               >
                 <X size={20} />
               </button>
             </div>
 
-            <div className="drawer-meta">
-              <div>
-                <span>Khách hàng</span>
-                <strong>{selectedOrder.customer}</strong>
+            {/* KHU VỰC TẢI & QUÉT ẢNH HÓA ĐƠN TỰ ĐỘNG */}
+            <div style={{ marginBottom: "16px" }}>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                hidden
+                onChange={handleFileChange}
+              />
+              <div
+                onClick={() => fileInputRef.current?.click()}
+                style={{
+                  border: "2px dashed #cbd5e1",
+                  borderRadius: "10px",
+                  padding: "12px",
+                  textAlign: "center",
+                  cursor: "pointer",
+                  background: "#f8fafc",
+                }}
+              >
+                {isAnalyzing ? (
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", color: "#2563eb" }}>
+                    <LoaderCircle className="spin" size={18} />
+                    <span style={{ fontSize: "13px", fontWeight: "600" }}>AI đang phân tích hóa đơn...</span>
+                  </div>
+                ) : previewUrl ? (
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "10px" }}>
+                    <img src={previewUrl} alt="Receipt" style={{ height: "36px", borderRadius: "4px", objectFit: "cover" }} />
+                    <span style={{ fontSize: "12px", color: "#0f172a", fontWeight: "600" }}>
+                      {selectedFile?.name} (Bấm để chọn ảnh khác)
+                    </span>
+                  </div>
+                ) : (
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", color: "#475569" }}>
+                    <UploadCloud size={18} color="#2563eb" />
+                    <span style={{ fontSize: "13px", fontWeight: "600" }}>Tải lên ảnh hóa đơn / chứng từ để quét OCR</span>
+                  </div>
+                )}
               </div>
 
-              <div>
-                <span>Loại đơn</span>
-                <strong>{selectedOrder.orderType}</strong>
-              </div>
+              {/* Dải cảnh báo bất thường nếu có */}
+              {ocrWarning && (
+                <div
+                  style={{
+                    marginTop: "8px",
+                    padding: "8px 12px",
+                    background: "#fef2f2",
+                    border: "1px solid #fecaca",
+                    borderRadius: "8px",
+                    color: "#dc2626",
+                    fontSize: "12px",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "6px",
+                  }}
+                >
+                  <AlertTriangle size={16} />
+                  <span>{ocrWarning}</span>
+                </div>
+              )}
             </div>
 
-            <section className="drawer-section">
-              <h3>Các món trong đơn</h3>
-
-              <div className="drawer-items">
-                {selectedOrder.items.map((item) => {
-                  const revenue =
-                    item.quantity * item.sellingPrice;
-
-                  const cost =
-                    item.quantity * item.costPrice;
-
-                  return (
-                    <div
-                      className="drawer-item"
-                      key={item.id}
-                    >
-                      <div>
-                        <strong>{item.name}</strong>
-                        <span>
-                          {item.quantity} ×{" "}
-                          {formatCurrency(
-                            item.sellingPrice
-                          )}
-                        </span>
-                      </div>
-
-                      <div>
-                        <strong>
-                          {formatCurrency(revenue)}
-                        </strong>
-                        <span>
-                          Lãi {formatCurrency(revenue - cost)}
-                        </span>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </section>
-
-            <section className="drawer-section breakdown">
-              <h3>Phân tích tài chính</h3>
-
-              <BreakdownRow
-                label="Doanh thu bán hàng"
-                value={selectedOrder.revenue}
-              />
-
-              <BreakdownRow
-                label="Giảm giá"
-                value={-selectedOrder.discount}
-              />
-
-              <BreakdownRow
-                label="Doanh thu thuần"
-                value={selectedOrder.netRevenue}
-                emphasized
-              />
-
-              <BreakdownRow
-                label="Giá vốn sản phẩm"
-                value={selectedOrder.productCost}
-              />
-
-              <BreakdownRow
-                label="Chi phí phát sinh"
-                value={selectedOrder.otherCost}
-              />
-
-              <BreakdownRow
-                label="Tổng chi phí"
-                value={selectedOrder.totalCost}
-                emphasized
-              />
-            </section>
-
-            <section className="drawer-profit-card">
-              <div>
-                <span>Lợi nhuận đơn hàng</span>
-                <strong>
-                  {formatCurrency(selectedOrder.profit)}
-                </strong>
+            {/* FORM THÔNG TIN KHOẢN CHI (TỰ ĐIỀN SAU KHI QUÉT) */}
+            <form onSubmit={handleSubmit}>
+              <div className="form-group">
+                <label>Danh mục chi phí *</label>
+                <select
+                  value={formData.category_id}
+                  onChange={(e) =>
+                    setFormData({ ...formData, category_id: e.target.value })
+                  }
+                  required
+                >
+                  <option value="">-- Chọn danh mục --</option>
+                  {categories.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
               </div>
 
-              <div className="drawer-profit-badge">
-                <ArrowUpRight size={16} />
-                {selectedOrder.profitMargin.toFixed(1)}%
+              <div className="form-row">
+                <div className="form-group flex-1">
+                  <label>Ngày phát sinh *</label>
+                  <input
+                    type="date"
+                    value={formData.expense_date}
+                    onChange={(e) =>
+                      setFormData({ ...formData, expense_date: e.target.value })
+                    }
+                    required
+                  />
+                </div>
+                <div className="form-group flex-1">
+                  <label>Số tiền (VNĐ) *</label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="1000"
+                    placeholder="Ví dụ: 250000"
+                    value={formData.amount}
+                    onChange={(e) =>
+                      setFormData({ ...formData, amount: e.target.value })
+                    }
+                    required
+                  />
+                </div>
               </div>
-            </section>
-          </aside>
-        </>
+
+              <div className="form-group">
+                <label>Nhà cung cấp / Nơi bán</label>
+                <input
+                  type="text"
+                  placeholder="Ví dụ: Cửa hàng tiện lợi, Tiệm tạp hóa..."
+                  value={formData.supplier_name}
+                  onChange={(e) =>
+                    setFormData({ ...formData, supplier_name: e.target.value })
+                  }
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Mô tả chi tiết</label>
+                <textarea
+                  rows="3"
+                  placeholder="Ghi chú thêm về khoản chi..."
+                  value={formData.description}
+                  onChange={(e) =>
+                    setFormData({ ...formData, description: e.target.value })
+                  }
+                />
+              </div>
+
+              <div className="modal-actions">
+                <button
+                  type="button"
+                  className="btn-secondary"
+                  onClick={() => setIsModalOpen(false)}
+                >
+                  Hủy bỏ
+                </button>
+                <button
+                  type="submit"
+                  className="btn-primary"
+                  disabled={isSubmitting || isAnalyzing}
+                >
+                  {isSubmitting ? "Đang lưu..." : editingId ? "Cập nhật" : "Lưu khoản chi"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
-    </main>
-  );
-}
-
-function KpiCard({
-  label,
-  value,
-  change,
-  trend,
-  icon,
-  variant,
-}) {
-  const positive = trend === "up";
-
-  return (
-    <article className={`kpi-card ${variant}`}>
-      <div className="kpi-card__top">
-        <div className="kpi-icon">{icon}</div>
-
-        <span
-          className={`kpi-change ${
-            positive ? "positive" : "negative"
-          }`}
-        >
-          {positive ? (
-            <ArrowUpRight size={15} />
-          ) : (
-            <ArrowDownRight size={15} />
-          )}
-
-          {change}
-        </span>
-      </div>
-
-      <div className="kpi-card__content">
-        <span>{label}</span>
-        <strong>{value}</strong>
-      </div>
-
-      <small>So với kỳ trước</small>
-    </article>
-  );
-}
-
-function InsightRow({ label, value }) {
-  return (
-    <div className="insight-row">
-      <span>{label}</span>
-      <strong>{value}</strong>
-    </div>
-  );
-}
-
-function BreakdownRow({
-  label,
-  value,
-  emphasized = false,
-}) {
-  return (
-    <div
-      className={`breakdown-row ${
-        emphasized ? "emphasized" : ""
-      }`}
-    >
-      <span>{label}</span>
-      <strong>{formatCurrency(value)}</strong>
     </div>
   );
 }

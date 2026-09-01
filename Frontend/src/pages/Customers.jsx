@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "react-toastify";
 
 import customerApi from "../api/customerApi";
@@ -24,6 +24,10 @@ const initialPagination = {
 function Customers() {
   const [customers, setCustomers] = useState([]);
   const [keyword, setKeyword] = useState("");
+  const [searchKeyword, setSearchKeyword] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(5);
@@ -37,31 +41,52 @@ function Customers() {
 
   const [formData, setFormData] = useState(initialFormData);
 
-  useEffect(() => {
-    loadCustomers();
-  }, [currentPage, itemsPerPage, keyword]);
+  const loadCustomers = useCallback(async () => {
+    setIsLoading(true);
 
-  const loadCustomers = async () => {
     try {
       const res = await customerApi.getAll({
         page: currentPage,
         page_size: itemsPerPage,
-        keyword,
+        keyword: searchKeyword.trim(),
       });
 
-      const result = res.data.data;
+      const result = res?.data?.data || {};
+      const nextPagination = result.pagination || initialPagination;
 
       setCustomers(result.items || []);
-      setPagination(result.pagination || initialPagination);
+      setPagination(nextPagination);
+
+      if (
+        nextPagination.total_pages > 0 &&
+        currentPage > nextPagination.total_pages
+      ) {
+        setCurrentPage(nextPagination.total_pages);
+      }
     } catch (error) {
       toast.error("Không thể tải danh sách khách hàng");
-      console.log("Lỗi load khách hàng:", error);
+      console.error("Lỗi load khách hàng:", error);
+      setCustomers([]);
+    } finally {
+      setIsLoading(false);
     }
-  };
+  }, [currentPage, itemsPerPage, searchKeyword]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setCurrentPage(1);
+      setSearchKeyword(keyword);
+    }, 400);
+
+    return () => clearTimeout(timer);
+  }, [keyword]);
+
+  useEffect(() => {
+    loadCustomers();
+  }, [loadCustomers]);
 
   const handleSearch = (e) => {
     setKeyword(e.target.value);
-    setCurrentPage(1);
   };
 
   const handlePageSizeChange = (e) => {
@@ -122,6 +147,8 @@ function Customers() {
       return;
     }
 
+    setIsSaving(true);
+
     const toastId = toast.loading(
       editingCustomer
         ? "Đang cập nhật khách hàng..."
@@ -150,7 +177,7 @@ function Customers() {
       }
 
       closeModal();
-      loadCustomers();
+      await loadCustomers();
     } catch (error) {
       toast.update(toastId, {
         render: error.response?.data?.message || "Lưu khách hàng thất bại",
@@ -158,11 +185,15 @@ function Customers() {
         isLoading: false,
         autoClose: 2500,
       });
+    } finally {
+      setIsSaving(false);
     }
   };
 
   const handleDelete = async () => {
-    if (!deletingCustomer) return;
+    if (!deletingCustomer || isDeleting) return;
+
+    setIsDeleting(true);
 
     const toastId = toast.loading("Đang xóa khách hàng...");
 
@@ -177,7 +208,12 @@ function Customers() {
       });
 
       closeDeleteModal();
-      loadCustomers();
+
+      if (customers.length === 1 && currentPage > 1) {
+        setCurrentPage((prev) => prev - 1);
+      } else {
+        await loadCustomers();
+      }
     } catch (error) {
       toast.update(toastId, {
         render: error.response?.data?.message || "Xóa khách hàng thất bại",
@@ -185,8 +221,41 @@ function Customers() {
         isLoading: false,
         autoClose: 2500,
       });
+    } finally {
+      setIsDeleting(false);
     }
   };
+
+  const visiblePages = useMemo(() => {
+    const totalPages = Math.max(1, pagination.total_pages || 1);
+
+    if (totalPages <= 5) {
+      return Array.from({ length: totalPages }, (_, index) => index + 1);
+    }
+
+    if (currentPage <= 3) return [1, 2, 3, 4, "ellipsis-end", totalPages];
+
+    if (currentPage >= totalPages - 2) {
+      return [
+        1,
+        "ellipsis-start",
+        totalPages - 3,
+        totalPages - 2,
+        totalPages - 1,
+        totalPages,
+      ];
+    }
+
+    return [
+      1,
+      "ellipsis-start",
+      currentPage - 1,
+      currentPage,
+      currentPage + 1,
+      "ellipsis-end",
+      totalPages,
+    ];
+  }, [currentPage, pagination.total_pages]);
 
   const getStartItem = () => {
     if (pagination.total_items === 0) return 0;
@@ -229,9 +298,11 @@ function Customers() {
 
       <div className="customer-toolbar">
         <input
+          type="search"
           placeholder="Tìm theo tên, số điện thoại hoặc email..."
           value={keyword}
           onChange={handleSearch}
+          aria-label="Tìm kiếm khách hàng"
         />
       </div>
 
@@ -249,7 +320,13 @@ function Customers() {
           </thead>
 
           <tbody>
-            {customers.length > 0 ? (
+            {isLoading ? (
+              <tr>
+                <td colSpan="6" className="empty-table">
+                  Đang tải danh sách khách hàng...
+                </td>
+              </tr>
+            ) : customers.length > 0 ? (
               customers.map((customer) => (
                 <tr key={customer.id}>
                   <td>
@@ -333,31 +410,33 @@ function Customers() {
             </select>
 
             <button
-              disabled={!pagination.has_previous}
+              disabled={isLoading || !pagination.has_previous}
               onClick={() => setCurrentPage((prev) => prev - 1)}
             >
               Trước
             </button>
 
-            {Array.from(
-              { length: pagination.total_pages || 1 },
-              (_, index) => {
-                const pageNumber = index + 1;
-
-                return (
-                  <button
-                    key={pageNumber}
-                    className={currentPage === pageNumber ? "active-page" : ""}
-                    onClick={() => setCurrentPage(pageNumber)}
-                  >
-                    {pageNumber}
-                  </button>
-                );
-              }
+            {visiblePages.map((page) =>
+              typeof page === "string" ? (
+                <span className="pagination-ellipsis" key={page}>
+                  ...
+                </span>
+              ) : (
+                <button
+                  key={page}
+                  type="button"
+                  disabled={isLoading}
+                  className={currentPage === page ? "active-page" : ""}
+                  aria-current={currentPage === page ? "page" : undefined}
+                  onClick={() => setCurrentPage(page)}
+                >
+                  {page}
+                </button>
+              )
             )}
 
             <button
-              disabled={!pagination.has_next}
+              disabled={isLoading || !pagination.has_next}
               onClick={() => setCurrentPage((prev) => prev + 1)}
             >
               Sau
@@ -388,6 +467,7 @@ function Customers() {
               <div className="form-group">
                 <label>Tên khách hàng</label>
                 <input
+                  required
                   name="customer_name"
                   value={formData.customer_name}
                   onChange={handleChange}
@@ -399,6 +479,7 @@ function Customers() {
                 <div className="form-group">
                   <label>Số điện thoại</label>
                   <input
+                    type="tel"
                     name="phone"
                     value={formData.phone}
                     onChange={handleChange}
@@ -409,6 +490,7 @@ function Customers() {
                 <div className="form-group">
                   <label>Email</label>
                   <input
+                    type="email"
                     name="email"
                     value={formData.email}
                     onChange={handleChange}
@@ -444,8 +526,12 @@ function Customers() {
                   Hủy
                 </button>
 
-                <button type="submit" className="save-btn">
-                  {editingCustomer ? "Lưu thay đổi" : "Thêm khách hàng"}
+                <button type="submit" className="save-btn" disabled={isSaving}>
+                  {isSaving
+                    ? "Đang lưu..."
+                    : editingCustomer
+                    ? "Lưu thay đổi"
+                    : "Thêm khách hàng"}
                 </button>
               </div>
             </form>
@@ -470,8 +556,12 @@ function Customers() {
                 Hủy
               </button>
 
-              <button className="confirm-delete-btn" onClick={handleDelete}>
-                Xóa khách hàng
+              <button
+                className="confirm-delete-btn"
+                onClick={handleDelete}
+                disabled={isDeleting}
+              >
+                {isDeleting ? "Đang xóa..." : "Xóa khách hàng"}
               </button>
             </div>
           </div>
