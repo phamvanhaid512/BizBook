@@ -63,7 +63,7 @@ INSTALLED_APPS = [
     'data_mining.apps.DataMiningConfig',
     # 'ai_agent.apps.AiAgentConfig',
     # 'mining',
-    # 'ai_agent',
+    'ai_agent',
 ]
 CHANNEL_LAYERS = {
     "default": {

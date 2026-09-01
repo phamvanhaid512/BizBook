@@ -23,6 +23,7 @@ class AprioriAnalyzer:
         transactions = self._build_transactions(
             rows
         )
+        print("🚀 ~ AprioriAnalyzer ~ analyze ~ transactions:", transactions)
 
         if len(transactions) < 2:
             return {
@@ -36,6 +37,8 @@ class AprioriAnalyzer:
             }
 
         encoder = TransactionEncoder()
+        print("🚀 ~ AprioriAnalyzer ~ analyze ~ encoder:", encoder)
+        
 
         encoded_array = (
             encoder
@@ -152,12 +155,13 @@ class AprioriAnalyzer:
 
     def _build_transactions(self, rows):
         grouped_transactions = defaultdict(set)
-
         for row in rows:
             order_id = row.get("order_id")
+            
             product_name = str(
                 row.get("product_name") or ""
             ).strip()
+   
 
             if not order_id or not product_name:
                 continue
@@ -165,6 +169,7 @@ class AprioriAnalyzer:
             grouped_transactions[
                 order_id
             ].add(product_name)
+        
 
         return [
             sorted(products)

@@ -124,7 +124,6 @@ class AprioriRequestSerializer(
 
 #         return attrs
 
-
 class ForecastRequestSerializer(
     serializers.Serializer
 ):
@@ -132,9 +131,10 @@ class ForecastRequestSerializer(
         required=False,
         default=180,
         min_value=14,
-        max_value=1095,
+        max_value=1095
     )
-
+    start_date = serializers.DateField(required=False)
+    end_date = serializers.DateField(required=False)
     forecast_days = serializers.IntegerField(
         required=False,
         default=7,

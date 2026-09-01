@@ -38,11 +38,8 @@ class DashBoardService(BaseService):
         try:
             month = int(month)
             year = int(year)
-
         except (TypeError, ValueError):
-            raise ValueError(
-                "Tháng và năm phải là số"
-            )
+            raise ValueError("Tháng và năm phải là số")
 
         if month < 1 or month > 12:
             raise ValueError(
@@ -59,7 +56,6 @@ class DashBoardService(BaseService):
     def get_year_range(self, year):
         try:
             year = int(year)
-
         except (TypeError, ValueError):
             raise ValueError("Năm phải là số")
 
@@ -212,9 +208,7 @@ class DashBoardService(BaseService):
 
             return {
                 "success": True,
-                "message": (
-                    "Lấy dữ liệu Dashboard thành công"
-                ),
+                "message": "Lấy dữ liệu Dashboard thành công",
                 "data": serializer.data,
             }
 
@@ -236,7 +230,7 @@ class DashBoardService(BaseService):
             )
 
             error_data = {
-                "error": str(error)
+                "error": str(error),
             }
 
             if settings.DEBUG:
@@ -246,8 +240,6 @@ class DashBoardService(BaseService):
 
             return {
                 "success": False,
-                "message": (
-                    "Không thể lấy dữ liệu Dashboard"
-                ),
+                "message": "Không thể lấy dữ liệu Dashboard",
                 "data": error_data,
             }

@@ -2,8 +2,9 @@ from django.urls import path
 from . import controllers
 
 urlpatterns = [
-    path("apriori/run/",controllers.run_apriori),
-    # path("forecasting/run/",views.run_forecasting,name="run_forecasting"),
-    # path("dashboard/",views.get_data_mining_dashboard,name="dashboard",),
-    # path("runs/",views.get_mining_runs,name="runs",),
+    path("data-mining/apriori/run/",controllers.run_apriori),
+    path("data-mining/apriori/get_highlights/",controllers.get_highlights),
+    path("data-mining/forecasting/run/",controllers.run_forecasting),
+    # path("dashboard/",controllers.get),
+    path("data-mining/runs/",controllers.get_mining_runs),
 ]
