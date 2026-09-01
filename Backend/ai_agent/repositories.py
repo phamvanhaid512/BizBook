@@ -1,25 +1,25 @@
+from common.base_repository import BaseRepository
 from django.db.models import Count
-
 from .models import ChatMessage, ChatSession
 
 
-class ChatSessionRepository:
+class ChatSessionRepository(BaseRepository):
+    def __init__(self):
+        super().__init__(ChatSession)
+    # Thêm hàm create nhận user và title
     def create(self, user, title):
-        return ChatSession.objects.create(
-            user=user,
-            title=title,
-        )
+        return self.get_model().objects.create(user=user, title=title)
 
     def get_owned_by_user(self, session_id, user):
         return (
-            ChatSession.objects
+            self.get_model().objects
             .filter(id=session_id, user=user)
             .first()
         )
 
     def get_all_by_user(self, user):
         return (
-            ChatSession.objects
+            self.get_model().objects
             .filter(user=user)
             .annotate(message_count=Count("messages"))
             .order_by("-updated_at")
@@ -33,14 +33,13 @@ class ChatSessionRepository:
     def touch(self, session):
         session.save(update_fields=["updated_at"])
 
-    def delete(self, session):
-        session.delete()
-        return True
 
+class ChatMessageRepository(BaseRepository):
+    def __init__(self):
+        super().__init__(ChatMessage)
 
-class ChatMessageRepository:
-    def create(self, session, role, content, metadata=None):
-        message = ChatMessage.objects.create(
+    def create_message(self, session, role, content, metadata=None):
+        message = self.get_model().objects.create(
             session=session,
             role=role,
             content=content,
@@ -51,14 +50,14 @@ class ChatMessageRepository:
 
     def get_all_by_session(self, session):
         return (
-            ChatMessage.objects
+            self.get_model().objects
             .filter(session=session)
             .order_by("created_at")
         )
 
     def get_recent_by_session(self, session, limit=20):
         messages = list(
-            ChatMessage.objects
+            self.get_model().objects
             .filter(session=session)
             .order_by("-created_at")[:limit]
         )

@@ -23,7 +23,6 @@ class AprioriAnalyzer:
         transactions = self._build_transactions(
             rows
         )
-        print("🚀 ~ AprioriAnalyzer ~ analyze ~ transactions:", transactions)
 
         if len(transactions) < 2:
             return {
@@ -37,7 +36,6 @@ class AprioriAnalyzer:
             }
 
         encoder = TransactionEncoder()
-        print("🚀 ~ AprioriAnalyzer ~ analyze ~ encoder:", encoder)
         
 
         encoded_array = (

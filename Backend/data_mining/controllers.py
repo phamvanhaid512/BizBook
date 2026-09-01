@@ -6,6 +6,7 @@ from common.decorators import (
     jwt_required,
     role_required,
 )
+from common.error_handler import handle_api_exception
 from common.untils import RequestData
 
 from .service import DataMiningService
@@ -48,6 +49,31 @@ def get_highlights(request):
             result["message"],
             200,
         )
+@csrf_exempt
+@require_http_methods(["GET"])
+@jwt_required
+def get_dashboard_view(request):
+    try:
+        params = {
+            "history_days": request.GET.get("history_days", 90),
+            "top_product_limit": request.GET.get("top_product_limit", 5),
+        }
+        result = data_mining_service.get_dashboard(params=params)
+
+        if not result.get("success"):
+            return ApiResponse.error(
+                message=result.get("message", "Không thể lấy dữ liệu dashboard"),
+                status=400,
+                data=result.get("data")
+            )
+
+        return ApiResponse.success(
+            data=result.get("data"),
+            message=result.get("message", "Lấy dữ liệu dashboard thành công"),
+            status=200
+        )
+    except Exception as error:
+        return handle_api_exception(error=error, api_name="get_dashboard_view")
 @csrf_exempt
 @require_http_methods(["POST"])
 @jwt_required

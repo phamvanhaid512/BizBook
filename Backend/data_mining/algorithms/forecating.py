@@ -390,7 +390,7 @@ class RevenueForecastAnalyzer:
 
         first_value = forecast_result[0][
             "predicted_revenue"
-        ]
+        ]   
 
         last_value = forecast_result[-1][
             "predicted_revenue"

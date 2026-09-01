@@ -1,45 +1,58 @@
 from django.db import models
+from django.contrib.auth import get_user_model
+from django.utils import timezone
 
-from accounts.models import Account
+User = get_user_model()
 
-# Create your models here.
+
+class ExpenseCategory(models.Model):
+    name = models.CharField(max_length=100, unique=True)
+    description = models.TextField(blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = "expense_categories"
+        ordering = ["name"]
+
+    def __str__(self):
+        return self.name
+
+
 class Expenses(models.Model):
-    expense_name = models.CharField(max_length=200)
-    expense_type = models.CharField(max_length=500)
-    amount = models.DecimalField(
-        max_digits=12,
-        decimal_places=2,
-        default=0
-    )
-    expentse_date = models.DateTimeField(
-        auto_now_add=True
-    )
-    note = models.CharField(max_length=200)
-    created_by = models.ForeignKey(
-        Account,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name="created_expenses"
-    )
-    create_at = models.DateTimeField(
-        auto_now_add=True
-    )
+    class Status(models.TextChoices):
+        DRAFT = "DRAFT", "Bản nháp"
+        CONFIRMED = "CONFIRMED", "Đã xác nhận"
+        CANCELLED = "CANCELLED", "Đã hủy"
 
+    user = models.ForeignKey(
+        User, on_delete=models.SET_NULL, null=True, blank=True, related_name="expenses"
+    )
+    category = models.ForeignKey(
+        ExpenseCategory, on_delete=models.PROTECT, related_name="expenses", null=True, blank=True
+    )
+    
+    # Bổ sung duy nhất trường này: Tên nơi bán / người nhận tiền bóc tách từ OCR
+    supplier_name = models.CharField(
+        max_length=255, blank=True, default="", verbose_name="Nhà cung cấp / Bên nhận"
+    )
+    
+    expense_date = models.DateField(default=timezone.now)
+    amount = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    description = models.TextField(blank=True, default="")
+    status = models.CharField(
+        max_length=20, choices=Status.choices, default=Status.CONFIRMED
+    )
+    receipt_image = models.CharField(max_length=255, blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         db_table = "expenses"
-    
+        ordering = ["-expense_date", "-created_at"]
+
     def __str__(self):
-        return self.expense_name
-    
-    # def to_dict(self):
-    #     return {
-    #         "id":self.id,
-    #         "expenses":self.expense_name,
-    #         "expense_type":self.expense_type,
-    #         "expentse_date":self.expentse_date,
-    #         "note":self.note,
-    #         "created_by":self.created_by,
-    #         "created_at":self.create_at,
-    #     }
+        cat_name = self.category.name if self.category else "Chưa phân loại"
+        supp = f" ({self.supplier_name})" if self.supplier_name else ""
+        return f"{cat_name}{supp} - {self.amount:,.0f} VNĐ ({self.expense_date})"
+

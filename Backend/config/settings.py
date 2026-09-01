@@ -65,6 +65,7 @@ INSTALLED_APPS = [
     # 'ai_agent.apps.AiAgentConfig',
     # 'mining',
     'ai_agent',
+    'documents'
 ]
 CHANNEL_LAYERS = {
     "default": {
