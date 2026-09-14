@@ -1,57 +1,56 @@
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import menuApi from "../../api/menuApi";
-import { useNavigate } from "react-router-dom";
 import "./Menu.css";
 
 function Menu() {
   const { tableId } = useParams();
   const navigate = useNavigate();
+
   const [categories, setCategories] = useState([]);
   const [openCategoryId, setOpenCategoryId] = useState(null);
   const [cart, setCart] = useState([]);
-  const [customer, setCustomer] = useState({
-    name: "",
-    phone: "",
-  });
+  const [customer, setCustomer] = useState({ name: "", phone: "" });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // State quản lý hiển thị Giỏ hàng & hiệu ứng nảy icon
+  const [isCartOpen, setIsCartOpen] = useState(false);
+  const [isCartBouncing, setIsCartBouncing] = useState(false);
 
   useEffect(() => {
     loadMenu();
   }, []);
 
-const loadMenu = async () => {
-  try {
-    const [categoryRes, productRes] = await Promise.all([
-      menuApi.getCategories(),
-      menuApi.getProducts({
-        page: 1,
-        page_size: 1000, // lấy toàn bộ sản phẩm
-      }),
-    ]);
+  const loadMenu = async () => {
+    try {
+      const [categoryRes, productRes] = await Promise.all([
+        menuApi.getCategories(),
+        menuApi.getProducts({
+          page: 1,
+          page_size: 1000,
+        }),
+      ]);
 
-    const categoryList = categoryRes.data.data || [];
+      const categoryList = categoryRes.data.data || [];
+      const productData = productRes.data.data;
+      const productList = Array.isArray(productData)
+        ? productData
+        : productData?.items || [];
 
-    // Hỗ trợ cả API cũ và API mới có phân trang
-    const productData = productRes.data.data;
+      const finalCategories = categoryList.map((category) => ({
+        id: category.id,
+        name: category.category_name,
+        description: category.description,
+        products: productList.filter(
+          (product) => Number(product.category) === Number(category.id)
+        ),
+      }));
 
-    const productList = Array.isArray(productData)
-      ? productData
-      : productData?.items || [];
-
-    const finalCategories = categoryList.map((category) => ({
-      id: category.id,
-      name: category.category_name,
-      description: category.description,
-      products: productList.filter(
-        (product) => Number(product.category) === Number(category.id)
-      ),
-    }));
-
-    setCategories(finalCategories);
-  } catch (error) {
-    console.error(error);
-  }
-};
+      setCategories(finalCategories);
+    } catch (error) {
+      console.error("Lỗi tải menu:", error);
+    }
+  };
 
   const toggleCategory = (categoryId) => {
     setOpenCategoryId(openCategoryId === categoryId ? null : categoryId);
@@ -61,7 +60,13 @@ const loadMenu = async () => {
     return product.product_name || product.name || "Sản phẩm";
   };
 
+  const triggerCartAnimation = () => {
+    setIsCartBouncing(true);
+    setTimeout(() => setIsCartBouncing(false), 300);
+  };
+
   const addToCart = (product) => {
+    triggerCartAnimation();
     const existed = cart.find((item) => item.id === product.id);
 
     if (existed) {
@@ -78,6 +83,7 @@ const loadMenu = async () => {
   };
 
   const changeQuantity = (id, value) => {
+    triggerCartAnimation();
     setCart(
       cart
         .map((item) =>
@@ -88,6 +94,8 @@ const loadMenu = async () => {
         .filter((item) => item.quantity > 0)
     );
   };
+
+  const totalQuantity = cart.reduce((sum, item) => sum + item.quantity, 0);
 
   const totalAmount = cart.reduce(
     (sum, item) => sum + Number(item.price) * item.quantity,
@@ -100,31 +108,41 @@ const loadMenu = async () => {
       return;
     }
 
-    const payload = {
-      table_id: tableId,
-      customer_name: customer.name || "Khách QR",
-      customer_phone: customer.phone,
+    const trimmedPhone = customer.phone.trim();
+    if (trimmedPhone && !/^(0|\+84)[0-9]{9}$/.test(trimmedPhone)) {
+      alert("Vui lòng nhập số điện thoại hợp lệ (10 chữ số)");
+      return;
+    }
 
+    // Cấu trúc payload chuẩn theo CreateOrderSerializer của backend
+    const payload = {
+      table_id: tableId ? Number(tableId) : null,
+      customer_name: customer.name.trim() || "Khách tại bàn",
+      customer_phone: trimmedPhone || null,
       items: cart.map((item) => ({
         product_id: item.id,
         quantity: item.quantity,
-        price: item.price,
       })),
-      total_amount: totalAmount,
     };
 
     try {
+      setIsSubmitting(true);
       const res = await menuApi.createOrder(payload);
-
-      const orderId = res.data.data.id;
+      
+      const orderData = res.data.data;
+      const orderId = orderData?.id || orderData?.order_code;
 
       setCart([]);
       setCustomer({ name: "", phone: "" });
+      setIsCartOpen(false);
 
       navigate(`/order-success/${orderId}`);
     } catch (error) {
-      console.log("Lỗi đặt hàng:", error);
-      alert("Đặt hàng thất bại");
+      console.error("Lỗi đặt hàng:", error);
+      const message = error.response?.data?.message || "Đặt hàng thất bại, vui lòng thử lại!";
+      alert(message);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -135,27 +153,8 @@ const loadMenu = async () => {
           <h1>BizBook Menu</h1>
           <p>Bàn số {tableId}</p>
         </div>
-
         <div className="qr-badge">QR Order</div>
       </header>
-
-      <section className="customer-box">
-        <input
-          placeholder="Tên khách hàng"
-          value={customer.name}
-          onChange={(e) =>
-            setCustomer({ ...customer, name: e.target.value })
-          }
-        />
-
-        <input
-          placeholder="Số điện thoại"
-          value={customer.phone}
-          onChange={(e) =>
-            setCustomer({ ...customer, phone: e.target.value })
-          }
-        />
-      </section>
 
       <main className="menu-layout">
         <section className="product-section">
@@ -228,38 +227,96 @@ const loadMenu = async () => {
           </div>
         </section>
 
-        <aside className="cart-box">
-          <h2>Giỏ hàng</h2>
-
-          {cart.length === 0 && (
-            <p className="empty-cart">Chưa có sản phẩm nào</p>
-          )}
-
-          {cart.map((item) => (
-            <div className="cart-item" key={item.id}>
-              <div>
-                <h4>{getProductName(item)}</h4>
-                <p>{Number(item.price).toLocaleString("vi-VN")}đ</p>
-              </div>
-
-              <div className="quantity-box">
-                <button onClick={() => changeQuantity(item.id, -1)}>-</button>
-                <span>{item.quantity}</span>
-                <button onClick={() => changeQuantity(item.id, 1)}>+</button>
-              </div>
-            </div>
-          ))}
-
-          <div className="cart-total">
-            <span>Tổng tiền</span>
-            <b>{totalAmount.toLocaleString("vi-VN")}đ</b>
+        {/* Sidebar Giỏ hàng trên Desktop & Modal trượt trên Mobile */}
+        <aside className={`cart-box desktop-cart ${isCartOpen ? "open" : ""}`}>
+          <div className="cart-header">
+            <h2>Giỏ hàng</h2>
+            <button className="close-cart-btn" onClick={() => setIsCartOpen(false)}>
+              ✕
+            </button>
           </div>
 
-          <button className="order-btn" onClick={submitOrder}>
-            Gửi đơn hàng
-          </button>
+          {cart.length === 0 ? (
+            <p className="empty-cart">Chưa có món nào trong giỏ</p>
+          ) : (
+            <div className="cart-items-list">
+              {cart.map((item) => (
+                <div className="cart-item" key={item.id}>
+                  <div>
+                    <h4>{getProductName(item)}</h4>
+                    <p>{Number(item.price).toLocaleString("vi-VN")}đ</p>
+                  </div>
+
+                  <div className="quantity-box">
+                    <button onClick={() => changeQuantity(item.id, -1)}>-</button>
+                    <span>{item.quantity}</span>
+                    <button onClick={() => changeQuantity(item.id, 1)}>+</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Nhập Tên và SĐT trước khi nhấn gửi đơn */}
+          <div className="cart-customer-inputs">
+            <h4>Thông tin người nhận (Tích điểm)</h4>
+            <input
+              type="text"
+              placeholder="Tên của bạn (VD: Anh Nam)"
+              value={customer.name}
+              onChange={(e) =>
+                setCustomer({ ...customer, name: e.target.value })
+              }
+            />
+            <input
+              type="tel"
+              placeholder="Số điện thoại (dùng để tích điểm)"
+              value={customer.phone}
+              onChange={(e) =>
+                setCustomer({ ...customer, phone: e.target.value })
+              }
+            />
+          </div>
+
+          <div className="cart-footer">
+            <div className="cart-total">
+              <span>Tổng tiền</span>
+              <b>{totalAmount.toLocaleString("vi-VN")}đ</b>
+            </div>
+
+            <button
+              className="order-btn"
+              onClick={submitOrder}
+              disabled={isSubmitting || cart.length === 0}
+            >
+              {isSubmitting ? "Đang gửi đơn..." : "Gửi đơn hàng"}
+            </button>
+          </div>
         </aside>
       </main>
+
+      {/* Nút giỏ hàng nổi góc dưới màn hình */}
+      <div
+        className={`floating-cart-btn ${isCartBouncing ? "bounce" : ""}`}
+        onClick={() => setIsCartOpen(!isCartOpen)}
+      >
+        <div className="cart-icon-wrapper">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <circle cx="9" cy="21" r="1"></circle>
+            <circle cx="20" cy="21" r="1"></circle>
+            <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+          </svg>
+          {totalQuantity > 0 && (
+            <span className="cart-badge">{totalQuantity}</span>
+          )}
+        </div>
+        <span className="floating-cart-total">{totalAmount.toLocaleString("vi-VN")}đ</span>
+      </div>
+
+      {/* Lớp phủ mờ màn hình khi mở giỏ hàng di động */}
+      {isCartOpen && (
+        <div className="cart-overlay" onClick={() => setIsCartOpen(false)} />
+      )}
     </div>
   );
 }

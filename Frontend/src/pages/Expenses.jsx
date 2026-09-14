@@ -13,6 +13,8 @@ import {
   FileText,
   LoaderCircle,
   X,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { toast } from "react-toastify";
 import expenseApi from "../api/expenseApi";
@@ -23,6 +25,16 @@ export default function ExpensesPage() {
   const [categories, setCategories] = useState([]);
   const [summary, setSummary] = useState({ total_amount: 0, by_category: [] });
   const [loading, setLoading] = useState(false);
+
+  // Phân trang
+  const [pagination, setPagination] = useState({
+    current_page: 1,
+    page_size: 10,
+    total_items: 0,
+    total_pages: 1,
+    has_next: false,
+    has_previous: false,
+  });
 
   // Bộ lọc
   const [filters, setFilters] = useState({
@@ -57,9 +69,10 @@ export default function ExpensesPage() {
     fetchCategories();
   }, []);
 
+  // Tải lại khi thay đổi filters hoặc page / page_size
   useEffect(() => {
     fetchExpensesData();
-  }, [filters]);
+  }, [filters, pagination.current_page, pagination.page_size]);
 
   const fetchCategories = async () => {
     try {
@@ -73,8 +86,30 @@ export default function ExpensesPage() {
   const fetchExpensesData = async () => {
     setLoading(true);
     try {
-      const expRes = await expenseApi.getExpenses(filters);
-      setExpenses(expRes.data?.data || []);
+      const params = {
+        ...filters,
+        page: pagination.current_page,
+        page_size: pagination.page_size,
+      };
+
+      const expRes = await expenseApi.getExpenses(params);
+      const resData = expRes.data?.data;
+
+      // Hỗ trợ cả 2 dạng data: dạng phân trang { items, pagination } hoặc fallback về array cũ
+      if (resData?.items) {
+        setExpenses(resData.items);
+        if (resData.pagination) {
+          setPagination((prev) => ({
+            ...prev,
+            total_items: resData.pagination.total_items || 0,
+            total_pages: resData.pagination.total_pages || 1,
+            has_next: Boolean(resData.pagination.has_next),
+            has_previous: Boolean(resData.pagination.has_previous),
+          }));
+        }
+      } else {
+        setExpenses(Array.isArray(resData) ? resData : []);
+      }
 
       if (filters.start_date && filters.end_date) {
         const sumRes = await expenseApi.getSummary({
@@ -88,6 +123,25 @@ export default function ExpensesPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Thay đổi trang
+  const handlePageChange = (newPage) => {
+    if (newPage >= 1 && newPage <= pagination.total_pages && newPage !== pagination.current_page) {
+      setPagination((prev) => ({ ...prev, current_page: newPage }));
+    }
+  };
+
+  // Thay đổi số dòng trên 1 trang
+  const handlePageSizeChange = (e) => {
+    const size = parseInt(e.target.value, 10) || 10;
+    setPagination((prev) => ({ ...prev, page_size: size, current_page: 1 }));
+  };
+
+  // Khi thay đổi filter, reset về trang 1
+  const handleFilterChange = (field, value) => {
+    setFilters((prev) => ({ ...prev, [field]: value }));
+    setPagination((prev) => ({ ...prev, current_page: 1 }));
   };
 
   // Mở modal Thêm/Sửa
@@ -126,7 +180,6 @@ export default function ExpensesPage() {
   // Xử lý tải ảnh và quét OCR tự động điền form
   const handleFileChange = async (e) => {
     const file = e.target.files?.[0];
-    console.log("file__________",file)
     if (!file) return;
 
     if (!file.type.startsWith("image/")) {
@@ -143,12 +196,10 @@ export default function ExpensesPage() {
       const payload = new FormData();
       payload.append("file", file);
 
-      // Gọi API OCR bóc tách văn bản
       const response = await expenseApi.analyzeDocument(payload);
       const data = response.data?.data;
       const parsed = data?.parsed_data || {};
 
-      // Tự động điền dữ liệu trích xuất vào form
       setFormData((prev) => ({
         ...prev,
         expense_date: parsed.expense_date || prev.expense_date,
@@ -158,7 +209,6 @@ export default function ExpensesPage() {
         receipt_image: data?.image_name || file.name,
       }));
 
-      // Bật cảnh báo nếu ảnh mờ/lóa hoặc điểm tin cậy thấp (Human-in-the-loop)
       if (data?.anomaly_detected || data?.needs_human_review) {
         const reasons = data?.anomaly_reasons?.join(", ") || "Chất lượng ảnh chưa tối ưu";
         setOcrWarning(`Cảnh báo (${data?.confidence_score}%): ${reasons}. Vui lòng kiểm tra lại.`);
@@ -173,7 +223,7 @@ export default function ExpensesPage() {
     }
   };
 
-  // Xử lý gửi lưu khoản chi
+  // Gửi lưu khoản chi
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!formData.category_id || !formData.amount || !formData.expense_date) {
@@ -249,7 +299,7 @@ export default function ExpensesPage() {
           </div>
           <div>
             <span className="kpi-label">Số khoản chi phát sinh</span>
-            <h3 className="kpi-val">{expenses.length} khoản</h3>
+            <h3 className="kpi-val">{pagination.total_items} khoản</h3>
           </div>
         </div>
 
@@ -274,26 +324,20 @@ export default function ExpensesPage() {
           <input
             type="date"
             value={filters.start_date}
-            onChange={(e) =>
-              setFilters({ ...filters, start_date: e.target.value })
-            }
+            onChange={(e) => handleFilterChange("start_date", e.target.value)}
           />
           <span>Đến:</span>
           <input
             type="date"
             value={filters.end_date}
-            onChange={(e) =>
-              setFilters({ ...filters, end_date: e.target.value })
-            }
+            onChange={(e) => handleFilterChange("end_date", e.target.value)}
           />
         </div>
 
         <div className="filter-group">
           <select
             value={filters.category_id}
-            onChange={(e) =>
-              setFilters({ ...filters, category_id: e.target.value })
-            }
+            onChange={(e) => handleFilterChange("category_id", e.target.value)}
           >
             <option value="">-- Tất cả danh mục --</option>
             {categories.map((c) => (
@@ -390,11 +434,80 @@ export default function ExpensesPage() {
             )}
           </tbody>
         </table>
+
+        {/* Thanh Phân Trang (Pagination Controls) */}
+        {!loading && pagination.total_items > 0 && (
+          <div className="pagination-wrapper">
+            <div className="pagination-info">
+              Hiển thị{" "}
+              <strong>
+                {(pagination.current_page - 1) * pagination.page_size + 1} -{" "}
+                {Math.min(pagination.current_page * pagination.page_size, pagination.total_items)}
+              </strong>{" "}
+              trên tổng số <strong>{pagination.total_items}</strong> khoản chi
+            </div>
+
+            <div className="pagination-controls">
+              <div className="page-size-selector">
+                <span>Số dòng:</span>
+                <select value={pagination.page_size} onChange={handlePageSizeChange}>
+                  <option value={5}>5</option>
+                  <option value={10}>10</option>
+                  <option value={20}>20</option>
+                  <option value={50}>50</option>
+                </select>
+              </div>
+
+              <div className="pagination-buttons">
+                <button
+                  type="button"
+                  className="page-btn"
+                  disabled={!pagination.has_previous}
+                  onClick={() => handlePageChange(pagination.current_page - 1)}
+                >
+                  <ChevronLeft size={16} />
+                </button>
+
+                {Array.from({ length: pagination.total_pages }, (_, i) => i + 1)
+                  .filter((p) => {
+                    return (
+                      p === 1 ||
+                      p === pagination.total_pages ||
+                      Math.abs(p - pagination.current_page) <= 1
+                    );
+                  })
+                  .map((pageNum, idx, arr) => (
+                    <React.Fragment key={pageNum}>
+                      {idx > 0 && arr[idx - 1] !== pageNum - 1 && (
+                        <span className="page-ellipsis">...</span>
+                      )}
+                      <button
+                        type="button"
+                        className={`page-btn ${
+                          pagination.current_page === pageNum ? "active" : ""
+                        }`}
+                        onClick={() => handlePageChange(pageNum)}
+                      >
+                        {pageNum}
+                      </button>
+                    </React.Fragment>
+                  ))}
+
+                <button
+                  type="button"
+                  className="page-btn"
+                  disabled={!pagination.has_next}
+                  onClick={() => handlePageChange(pagination.current_page + 1)}
+                >
+                  <ChevronRight size={16} />
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* ======================================================= */}
-      {/* MODAL GHI NHẬN / SỬA CHI PHÍ (TÍCH HỢP QUÉT ẢNH OCR)    */}
-      {/* ======================================================= */}
+      {/* Modal Ghi nhận / Sửa chi phí */}
       {isModalOpen && (
         <div className="modal-overlay">
           <div className="modal-box" style={{ maxWidth: "520px", width: "100%" }}>
@@ -411,7 +524,6 @@ export default function ExpensesPage() {
               </button>
             </div>
 
-            {/* KHU VỰC TẢI & QUÉT ẢNH HÓA ĐƠN TỰ ĐỘNG */}
             <div style={{ marginBottom: "16px" }}>
               <input
                 ref={fileInputRef}
@@ -451,7 +563,6 @@ export default function ExpensesPage() {
                 )}
               </div>
 
-              {/* Dải cảnh báo bất thường nếu có */}
               {ocrWarning && (
                 <div
                   style={{
@@ -473,7 +584,6 @@ export default function ExpensesPage() {
               )}
             </div>
 
-            {/* FORM THÔNG TIN KHOẢN CHI (TỰ ĐIỀN SAU KHI QUÉT) */}
             <form onSubmit={handleSubmit}>
               <div className="form-group">
                 <label>Danh mục chi phí *</label>

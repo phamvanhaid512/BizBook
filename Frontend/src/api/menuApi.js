@@ -9,7 +9,10 @@ const menuApi = {
   getCategories: () => {
     return axiosClient.get("/categories/");
   },
-
+  getTableDetail: (tableId) => {
+    return axiosClient.get(`/tables/${tableId}/`); 
+    // hoặc `/tables/${tableId}/` tùy theo backend urls.py đã cấu hình
+  },
   createOrder: (data) => {
     return axiosClient.post("/orders/create/", data);
   },

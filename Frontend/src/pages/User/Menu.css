@@ -341,3 +341,192 @@
     width: 100%;
   }
 }
+/* --- Floating Cart Button --- */
+.floating-cart-btn {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background-color: #007bff;
+  color: white;
+  padding: 12px 20px;
+  border-radius: 30px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+  cursor: pointer;
+  z-index: 999;
+  transition: transform 0.2s ease, background-color 0.2s;
+}
+
+.floating-cart-btn:hover {
+  background-color: #0056b3;
+}
+
+/* Hiệu ứng rung nhẹ khi thêm món */
+.floating-cart-btn.bounce {
+  animation: cartBounce 0.3s ease-in-out;
+}
+
+@keyframes cartBounce {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.15); }
+  100% { transform: scale(1); }
+}
+
+.cart-icon-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.cart-badge {
+  position: absolute;
+  top: -8px;
+  right: -10px;
+  background-color: #ff3b30;
+  color: white;
+  font-size: 11px;
+  font-weight: bold;
+  border-radius: 50%;
+  padding: 2px 6px;
+  min-width: 18px;
+  text-align: center;
+}
+
+.floating-cart-total {
+  font-weight: bold;
+  font-size: 14px;
+}
+
+/* --- Cart Overlay & Mobile Drawer --- */
+.cart-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.4);
+  z-index: 1000;
+}
+
+.close-cart-btn {
+  display: none;
+  background: none;
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
+}
+
+/* Style cho Responsive Mobile khi mở giỏ hàng */
+@media (max-width: 768px) {
+  .cart-box {
+    position: fixed;
+    bottom: -100%;
+    left: 0;
+    right: 0;
+    width: 100%;
+    max-height: 80vh;
+    background: white;
+    z-index: 1001;
+    border-radius: 16px 16px 0 0;
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15);
+    transition: bottom 0.3s ease-in-out;
+    display: flex;
+    flex-direction: column;
+    padding: 20px;
+    box-sizing: border-box;
+  }
+
+  .cart-box.open {
+    bottom: 0;
+  }
+
+  .cart-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+  }
+
+  .close-cart-btn {
+    display: block;
+  }
+
+  .cart-items-list {
+    overflow-y: auto;
+    max-height: 50vh;
+  }
+}
+/* ========================================================
+   CSS BỔ SUNG: KHỐI THÔNG TIN KHÁCH HÀNG (TÊN + SĐT)
+   ======================================================== */
+
+/* Hiệu ứng mượt mà & kiểu dáng chung cho 2 ô input Tên & SĐT */
+.customer-box input {
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  color: #0f172a;
+  font-weight: 500;
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.03);
+}
+
+.customer-box input::placeholder {
+  color: #94a3b8;
+  font-size: 16px;
+  font-weight: 400;
+}
+
+.customer-box input:hover {
+  border-color: #93c5fd;
+  background-color: #fafcff;
+}
+
+.customer-box input:focus {
+  background-color: #ffffff;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.15), 0 8px 20px rgba(37, 99, 235, 0.08);
+}
+
+/* Trường hợp bạn đặt form Tên + SĐT bên trong Giỏ hàng (.cart-customer-inputs) */
+.cart-customer-inputs {
+  margin-top: 18px;
+  padding-top: 18px;
+  border-top: 2px dashed #e2e8f0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.cart-customer-inputs h4 {
+  margin: 0 0 4px 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: #1e293b;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.cart-customer-inputs input {
+  height: 48px;
+  border: 1px solid #cbd8ee;
+  border-radius: 14px;
+  padding: 0 16px;
+  font-size: 15px;
+  color: #0f172a;
+  outline: none;
+  background: #f8fafc;
+  transition: all 0.2s ease;
+  font-family: inherit;
+}
+
+.cart-customer-inputs input::placeholder {
+  color: #94a3b8;
+  font-size: 14px;
+}
+
+.cart-customer-inputs input:focus {
+  background: #ffffff;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
