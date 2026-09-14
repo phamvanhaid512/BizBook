@@ -43,7 +43,7 @@ def get_detail_table(request, id):
 @jwt_required
 @role_required(["ADMIN", "OWNER"])
 def create_table(request):
-    
+    print("chay den day")
     data = RequestData.get_body(request)
     result = business_service.create(data)
 

@@ -28,12 +28,14 @@ class OrderSerializer(serializers.ModelSerializer):
         source="customer.customer_name",
         read_only=True
     )
-
+    customer_phone = serializers.CharField(
+        source="customer.phone",
+        read_only=True
+    )
     created_by_name = serializers.CharField(
         source="created_by.full_name",
         read_only=True
     )
-
     details = OrderDetailSerializer(many=True, read_only=True)
 
     class Meta:
@@ -47,8 +49,15 @@ class CreateOrderItemSerializer(serializers.Serializer):
 
 
 class CreateOrderSerializer(serializers.Serializer):
+    table_id = serializers.IntegerField(required=False, allow_null=True)
+    # Dành cho khách quét QR (chỉ nhập tên + sđt)
+    customer_name = serializers.CharField(required=False, allow_blank=True, max_length=255)
+    customer_phone = serializers.CharField(required=False, allow_blank=True, max_length=20)
+
+    # Dành cho nhân viên/POS chọn sẵn khách hoặc gắn tài khoản tạo
     customer = serializers.IntegerField(required=False, allow_null=True)
     created_by = serializers.IntegerField(required=False, allow_null=True)
+
     note = serializers.CharField(required=False, allow_blank=True)
     items = CreateOrderItemSerializer(many=True)
 
