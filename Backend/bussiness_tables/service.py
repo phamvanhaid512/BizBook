@@ -13,8 +13,9 @@ class BussinessService(BaseService):
         super().__init__(BussinessTablesRepository(),BusinessTableSerializer)
 
     def generate_qr(self, id):
+        print("Toi day nha ni --------------------------------")
         table = self._repository.get_by_id(id)
-
+        print("Table",table)
         if not table:
             return {
                 "success": False,
@@ -23,7 +24,7 @@ class BussinessService(BaseService):
             }
 
         menu_url = f"{settings.FRONTEND_URL}/menu/table/{table.id}"
-
+        print("menu_______________________",menu_url)
         qr = qrcode.make(menu_url)
 
         buffer = BytesIO()

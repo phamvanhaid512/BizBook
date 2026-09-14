@@ -1,18 +1,19 @@
 import uuid
 from decimal import Decimal
 from django.core.paginator import Paginator
-
 from common.base_service import BaseService
 from customers.models import Customer
 from accounts.models import Account
 from products.models import Product
 from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
-from .models import Order, OrderDetail
+from .models import Order, OrderDetail,Bussiness_Tables
 from .repository import OrderRepository
 from .serializers import OrderSerializer, CreateOrderSerializer
-
-
+from django.db import transaction
+from django.utils import timezone
+import uuid
+from decimal import Decimal
 class OrderService(BaseService):
     def __init__(self):
         super().__init__(OrderRepository(), OrderSerializer)
@@ -98,37 +99,61 @@ class OrderService(BaseService):
         return self._serializer_class(orders, many=True).data
 
     def create_order(self, data):
-        
         serializer = CreateOrderSerializer(data=data)
-        print("serializer",serializer)
         if not serializer.is_valid():
             return {
                 "success": False,
                 "message": "Dữ liệu đơn hàng không hợp lệ",
                 "data": serializer.errors
-        }
+            }
 
         validated_data = serializer.validated_data
 
-        customer = None
-        created_by = None
+        # 1. Xử lý thông tin bàn dựa trên model Bussiness_Tables
+        table = None
+        table_id = validated_data.get("table") or validated_data.get("table_id")
 
+        if table_id:
+            # Hỗ trợ cả trường hợp serializer trả về instance model hoặc trả về ID (int/str)
+            if isinstance(table_id, Bussiness_Tables):
+                table = table_id
+            else:
+                table = Bussiness_Tables.objects.filter(id=table_id).first()
+                if not table:
+                    return {
+                        "success": False,
+                        "message": f"Bàn với ID {table_id} không tồn tại",
+                        "data": None
+                    }
+
+        # 2. Xử lý thông tin khách hàng
+        customer = None
+        customer_phone = validated_data.get("customer_phone")
+        customer_name = validated_data.get("customer_name") or "Khách tại bàn"
         customer_id = validated_data.get("customer")
-        created_by_id = validated_data.get("created_by")
 
         if customer_id:
             customer = Customer.objects.filter(id=customer_id).first()
-
             if not customer:
                 return {
                     "success": False,
                     "message": "Khách hàng không tồn tại",
                     "data": None
                 }
+        elif customer_phone:
+            customer, created = Customer.objects.get_or_create(
+                phone=customer_phone,
+                defaults={"customer_name": customer_name}
+            )
+            if not created and customer_name != "Khách tại bàn" and customer.customer_name != customer_name:
+                customer.customer_name = customer_name
+                customer.save(update_fields=["customer_name"])
 
+        # 3. Xử lý người tạo đơn (Khách QR tạo đơn -> None)
+        created_by = None
+        created_by_id = validated_data.get("created_by")
         if created_by_id:
             created_by = Account.objects.filter(id=created_by_id).first()
-
             if not created_by:
                 return {
                     "success": False,
@@ -136,43 +161,60 @@ class OrderService(BaseService):
                     "data": None
                 }
 
-        order = Order.objects.create(
-            order_code="ORD-" + str(uuid.uuid4()).replace("-", "")[:8].upper(),
-            customer= customer,
-            created_by=created_by,
-            note=validated_data.get("note", ""),
-            total_amount=0,
-            status="PENDING",
-            payment_status="UNPAID"
-        )
-        total_amount = Decimal("0")
-        for item in validated_data["items"]:
-            product = Product.objects.filter(id=item["product_id"]).first()
+        # 4. Tạo Order và OrderDetail trong transaction an toàn
+        try:
+            with transaction.atomic():
+                order = Order.objects.create(
+                    order_code="ORD-" + str(uuid.uuid4()).replace("-", "")[:8].upper(),
+                    table=table,  # Gán đối tượng Bussiness_Tables vào đây
+                    customer=customer,
+                    created_by=created_by,
+                    note=validated_data.get("note", ""),
+                    total_amount=Decimal("0"),
+                    status="PENDING",
+                    payment_status="UNPAID",
+                    created_at=timezone.now()
+                )
 
-            if not product:
-                order.delete()
-                return {
-                    "success": False,
-                    "message": f"Sản phẩm ID {item['product_id']} không tồn tại",
-                    "data": None
-                }
+                total_amount = Decimal("0")
+                for item in validated_data["items"]:
+                    product = Product.objects.filter(id=item["product_id"]).first()
+                    if not product:
+                        raise ValueError(f"Sản phẩm ID {item['product_id']} không tồn tại")
 
-            quantity = item["quantity"]
-            unit_price = product.price
-            total_price = unit_price * quantity
+                    quantity = item["quantity"]
+                    unit_price = product.price
+                    total_price = unit_price * quantity
 
-            OrderDetail.objects.create(
-                order=order,
-                product=product,
-                quantity=quantity,
-                unit_price=unit_price,
-                total_price=total_price
-            )
+                    OrderDetail.objects.create(
+                        order=order,
+                        product=product,
+                        quantity=quantity,
+                        unit_price=unit_price,
+                        total_price=total_price
+                    )
+                    total_amount += total_price
 
-            total_amount += total_price
+                order.total_amount = total_amount
+                order.save(update_fields=["total_amount"])
 
-        order.total_amount = total_amount
-        order.save()
+                # Tự động cập nhật bàn sang trạng thái 'OCCUPIED' nếu đang AVAILABLE
+                if table and table.status == "AVAILABLE":
+                    table.status = "OCCUPIED"
+                    table.save(update_fields=["status"])
+
+        except ValueError as e:
+            return {
+                "success": False,
+                "message": str(e),
+                "data": None
+            }
+        except Exception as e:
+            return {
+                "success": False,
+                "message": f"Lỗi hệ thống: {str(e)}",
+                "data": None
+            }
 
         return {
             "success": True,

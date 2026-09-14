@@ -1,4 +1,5 @@
 import re
+from django.core.paginator import Paginator, EmptyPage
 from datetime import datetime, date
 from common.base_service import BaseService
 from .models import Expenses
@@ -51,16 +52,35 @@ class ExpenseService(BaseService):
             "data": ExpenseCategorySerializer(categories, many=True).data,
         }
 
-    def list_expenses(self, start_date=None, end_date=None, category_id=None):
+    def list_expenses(self, start_date=None, end_date=None, category_id=None, page=1, page_size=10):    
         valid_start = self._normalize_date(start_date)
         valid_end = self._normalize_date(end_date)
+
+        # Giả định get_filtered trả về một Django QuerySet
         expenses = self.expense_repo.get_filtered(
             start_date=valid_start, end_date=valid_end, category_id=category_id
         )
+
+        paginator = Paginator(expenses, page_size)
+        try:
+            paginated_page = paginator.page(page)
+        except EmptyPage:
+            paginated_page = paginator.page(paginator.num_pages if paginator.num_pages > 0 else 1)
+
         return {
             "success": True,
             "message": "Lấy danh sách chi phí thành công.",
-            "data": ExpensesSerializer(expenses, many=True).data,
+            "data": {
+                "items": ExpensesSerializer(paginated_page.object_list, many=True).data,
+                "pagination": {
+                    "current_page": paginated_page.number,
+                    "page_size": page_size,
+                    "total_items": paginator.count,
+                    "total_pages": paginator.num_pages,
+                    "has_next": paginated_page.has_next(),
+                    "has_previous": paginated_page.has_previous(),
+                },
+            },
         }
 
     def create_expense(self, user, data):

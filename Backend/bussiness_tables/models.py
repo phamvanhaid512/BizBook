@@ -1,6 +1,7 @@
 from django.db import models
 from django.utils import timezone
-# Create your models here.
+
+
 class Bussiness_Tables(models.Model):
     STATUS_CHOICES = (
         ("AVAILABLE", "Trống"),
@@ -14,13 +15,7 @@ class Bussiness_Tables(models.Model):
         blank=True
     )
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="AVAILABLE")
-    created_at = models.DateTimeField(
-    default=timezone.now
-    )
-
-    updated_at = models.DateTimeField(
-        auto_now=True
-    )
+    created_at = models.DateTimeField(default=timezone.now, null=True, blank=True)
 
     class Meta:
         db_table = "bussiness_table"
@@ -34,5 +29,5 @@ class Bussiness_Tables(models.Model):
             "table_name": self.table_name,
             "qr_code": self.qr_code.url if self.qr_code else None,
             "status": self.status,
-            "created_at": self.created_at.strftime("%Y-%m-%d %H:%M:%S")
+            "created_at": self.created_at.strftime("%Y-%m-%d %H:%M:%S") if self.created_at else None
         }

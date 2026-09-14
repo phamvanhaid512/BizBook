@@ -46,17 +46,32 @@ def expenses_list_create(request):
                 return ApiResponse.error(result.get("message"), 400, result.get("data"))
             return ApiResponse.success(result.get("data"), result.get("message"), 201)
 
+        # GET parameters
         start_date = request.GET.get("start_date")
         end_date = request.GET.get("end_date")
         category_id = request.GET.get("category_id")
 
+        # Đọc và ép kiểu page, page_size an toàn
+        try:
+            page = max(1, int(request.GET.get("page", 1)))
+        except (ValueError, TypeError):
+            page = 1
+
+        try:
+            page_size = max(1, min(100, int(request.GET.get("page_size", request.GET.get("limit", 10)))))
+        except (ValueError, TypeError):
+            page_size = 10
+
         result = expense_service.list_expenses(
-            start_date=start_date, end_date=end_date, category_id=category_id
+            start_date=start_date,
+            end_date=end_date,
+            category_id=category_id,
+            page=page,
+            page_size=page_size,
         )
         return ApiResponse.success(result.get("data"), result.get("message"), 200)
     except Exception as error:
         return handle_api_exception(error=error, api_name="expenses_list_create", request=request)
-
 
 @csrf_exempt
 @require_http_methods(["GET", "PUT", "DELETE"])
