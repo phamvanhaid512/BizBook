@@ -117,7 +117,6 @@ function Products() {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-
     setFormData({
       ...formData,
       [name]: value,
@@ -151,7 +150,6 @@ function Products() {
     try {
       if (editingProduct) {
         await productApi.update(editingProduct.id, payload);
-
         toast.update(toastId, {
           render: "Cập nhật sản phẩm thành công",
           type: "success",
@@ -160,7 +158,6 @@ function Products() {
         });
       } else {
         await productApi.create(payload);
-
         toast.update(toastId, {
           render: "Thêm sản phẩm thành công",
           type: "success",
@@ -188,7 +185,6 @@ function Products() {
 
     try {
       await productApi.delete(deletingProduct.id);
-
       toast.update(toastId, {
         render: "Xóa sản phẩm thành công",
         type: "success",
@@ -257,82 +253,125 @@ function Products() {
       </div>
 
       <div className="product-table-card">
-        <table>
-          <thead>
-            <tr>
-              <th>Sản phẩm</th>
-              <th>Danh mục</th>
-              <th>Giá bán</th>
-              <th>Tồn kho</th>
-              <th>Trạng thái</th>
-              <th>Thao tác</th>
-            </tr>
-          </thead>
-
-          <tbody>
-            {products.map((product) => (
-              <tr key={product.id}>
-                <td>
-                  <div className="product-info-cell">
-                    <div className="product-avatar">
-                      {product.product_name?.charAt(0)}
-                    </div>
-
-                    <div>
-                      <strong>{product.product_name}</strong>
-                      <p>ID: #{product.id}</p>
-                    </div>
-                  </div>
-                </td>
-
-                <td>{product.category_name || product.category || "Chưa phân loại"}</td>
-
-                <td className="price-cell">{formatMoney(product.price)}</td>
-
-                <td>{product.stock_quantity}</td>
-
-                <td>
-                  <span
-                    className={
-                      product.status === "ACTIVE"
-                        ? "status-badge active"
-                        : "status-badge inactive"
-                    }
-                  >
-                    {product.status === "ACTIVE" ? "Đang bán" : "Ngừng bán"}
-                  </span>
-                </td>
-
-                <td>
-                  <div className="action-buttons">
-                    <button
-                      className="edit-btn"
-                      onClick={() => openEditModal(product)}
-                    >
-                      Sửa
-                    </button>
-
-                    <button
-                      className="delete-btn"
-                      onClick={() => openDeleteModal(product)}
-                    >
-                      Xóa
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-
-            {products.length === 0 && (
+        {/* Desktop Table */}
+        <div className="table-responsive-desktop">
+          <table>
+            <thead>
               <tr>
-                <td colSpan="6" className="empty-table">
-                  Không có sản phẩm nào
-                </td>
+                <th>Sản phẩm</th>
+                <th>Danh mục</th>
+                <th>Giá bán</th>
+                <th>Tồn kho</th>
+                <th>Trạng thái</th>
+                <th>Thao tác</th>
               </tr>
-            )}
-          </tbody>
-        </table>
+            </thead>
 
+            <tbody>
+              {products.map((product) => (
+                <tr key={product.id}>
+                  <td>
+                    <div className="product-info-cell">
+                      <div className="product-avatar">
+                        {product.product_name?.charAt(0)}
+                      </div>
+                      <div>
+                        <strong>{product.product_name}</strong>
+                        <p>ID: #{product.id}</p>
+                      </div>
+                    </div>
+                  </td>
+                  <td>{product.category_name || product.category || "Chưa phân loại"}</td>
+                  <td className="price-cell">{formatMoney(product.price)}</td>
+                  <td>{product.stock_quantity} {product.unit ? `(${product.unit})` : ""}</td>
+                  <td>
+                    <span
+                      className={
+                        product.status === "ACTIVE"
+                          ? "status-badge active"
+                          : "status-badge inactive"
+                      }
+                    >
+                      {product.status === "ACTIVE" ? "Đang bán" : "Ngừng bán"}
+                    </span>
+                  </td>
+                  <td>
+                    <div className="action-buttons">
+                      <button className="edit-btn" onClick={() => openEditModal(product)}>
+                        Sửa
+                      </button>
+                      <button className="delete-btn" onClick={() => openDeleteModal(product)}>
+                        Xóa
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+
+              {products.length === 0 && (
+                <tr>
+                  <td colSpan="6" className="empty-table">
+                    Không có sản phẩm nào
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Mobile Product Card List */}
+        <div className="mobile-product-list">
+          {products.map((product) => (
+            <div key={product.id} className="mobile-product-card">
+              <div className="mobile-card-top">
+                <div className="product-info-cell">
+                  <div className="product-avatar">
+                    {product.product_name?.charAt(0)}
+                  </div>
+                  <div>
+                    <strong>{product.product_name}</strong>
+                    <p>#{product.id} • {product.category_name || product.category || "Chưa phân loại"}</p>
+                  </div>
+                </div>
+                <span
+                  className={
+                    product.status === "ACTIVE"
+                      ? "status-badge active"
+                      : "status-badge inactive"
+                  }
+                >
+                  {product.status === "ACTIVE" ? "Đang bán" : "Ngừng bán"}
+                </span>
+              </div>
+
+              <div className="mobile-card-details">
+                <div>
+                  <span>Giá bán:</span>
+                  <strong className="price-cell">{formatMoney(product.price)}</strong>
+                </div>
+                <div>
+                  <span>Tồn kho:</span>
+                  <strong>{product.stock_quantity} {product.unit || ""}</strong>
+                </div>
+              </div>
+
+              <div className="mobile-card-actions">
+                <button className="edit-btn" onClick={() => openEditModal(product)}>
+                  Chỉnh sửa
+                </button>
+                <button className="delete-btn" onClick={() => openDeleteModal(product)}>
+                  Xóa
+                </button>
+              </div>
+            </div>
+          ))}
+
+          {products.length === 0 && (
+            <div className="empty-table">Không có sản phẩm nào</div>
+          )}
+        </div>
+
+        {/* Phân trang */}
         <div className="pagination-box">
           <div className="pagination-info">
             Tổng <strong>{pagination.total_items || 0}</strong> sản phẩm
@@ -372,6 +411,7 @@ function Products() {
         </div>
       </div>
 
+      {/* Modal Thêm/Sửa */}
       {showModal && (
         <div className="modal-overlay">
           <div className="product-modal">
@@ -380,7 +420,6 @@ function Products() {
                 <h2>{editingProduct ? "Cập nhật sản phẩm" : "Thêm sản phẩm"}</h2>
                 <p>Nhập thông tin sản phẩm bên dưới</p>
               </div>
-
               <button className="close-btn" onClick={closeModal}>
                 ×
               </button>
@@ -469,7 +508,6 @@ function Products() {
                 <button type="button" className="cancel-btn" onClick={closeModal}>
                   Hủy
                 </button>
-
                 <button type="submit" className="save-btn">
                   {editingProduct ? "Lưu thay đổi" : "Thêm sản phẩm"}
                 </button>
@@ -479,13 +517,12 @@ function Products() {
         </div>
       )}
 
+      {/* Modal Xóa */}
       {showDeleteModal && (
         <div className="modal-overlay">
           <div className="delete-modal">
             <div className="delete-icon">!</div>
-
             <h2>Xóa sản phẩm?</h2>
-
             <p>
               Bạn có chắc muốn xóa sản phẩm{" "}
               <strong>{deletingProduct?.product_name}</strong> không?
@@ -495,7 +532,6 @@ function Products() {
               <button className="cancel-btn" onClick={closeDeleteModal}>
                 Hủy
               </button>
-
               <button className="confirm-delete-btn" onClick={handleDelete}>
                 Xóa sản phẩm
               </button>
