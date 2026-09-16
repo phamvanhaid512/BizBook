@@ -19,7 +19,8 @@ urlpatterns = [
     path("api/", include("data_mining.urls")),
     path("api/", include("ai_agent.urls")),
     path("api/", include("expenses.urls")),
-    path("api/", include("documents.urls")),  # <-- Thêm route này
+    path("api/", include("documents.urls")),
+    path("api/", include("table_chat.urls")),   # <-- Thêm route này
 ]
 
 if settings.DEBUG:

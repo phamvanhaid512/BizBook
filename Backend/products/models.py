@@ -7,7 +7,7 @@ class Product(models.Model):
         ("ACTIVE", "Đang bán"),
         ("INACTIVE", "Ngừng bán"),
     )
-
+    image_avatar = models.CharField(max_length=1000, null=True, blank=True)
     product_name = models.CharField(max_length=255)
     category = models.ForeignKey(
         Categories,

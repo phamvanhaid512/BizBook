@@ -65,7 +65,8 @@ INSTALLED_APPS = [
     # 'ai_agent.apps.AiAgentConfig',
     # 'mining',
     'ai_agent',
-    'documents'
+    'documents',
+    'table_chat'
 ]
 CHANNEL_LAYERS = {
     "default": {
