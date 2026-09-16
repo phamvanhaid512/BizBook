@@ -63,7 +63,7 @@ function formatCompactCurrency(value) {
   const number = Number(value || 0);
   if (number >= 1_000_000_000) return `${(number / 1_000_000_000).toFixed(1)} tỷ`;
   if (number >= 1_000_000) return `${(number / 1_000_000).toFixed(1)} tr`;
-  if (number >= 1_000) return `${Math.round(number / 1_000)} nghìn`;
+  if (number >= 1_000) return `${Math.round(number / 1_000)}k`;
   return number.toString();
 }
 
@@ -102,7 +102,7 @@ function getChartLabel(item) {
     const monthValue = String(item.month);
     if (/^\d{4}-\d{2}$/.test(monthValue)) {
       const [year, month] = monthValue.split("-");
-      return `Tháng ${Number(month)}/${year}`;
+      return `Th.${Number(month)}/${year}`;
     }
     return monthValue;
   }
@@ -126,13 +126,13 @@ function getAxiosErrorMessage(error, fallbackMessage) {
 function getStatusInfo(status) {
   const normalizedStatus = String(status || "").toUpperCase();
   const statusMap = {
-    PENDING: { text: "Chờ xác nhận", className: "pending" },
-    PROCESSING: { text: "Đang chuẩn bị", className: "processing" },
-    COMPLETED: { text: "Hoàn thành", className: "completed" },
+    PENDING: { text: "Chờ duyệt", className: "pending" },
+    PROCESSING: { text: "Đang làm", className: "processing" },
+    COMPLETED: { text: "Xong", className: "completed" },
     CANCELLED: { text: "Đã hủy", className: "cancelled" },
     CANCELED: { text: "Đã hủy", className: "cancelled" },
   };
-  return statusMap[normalizedStatus] || { text: status || "Không xác định", className: "pending" };
+  return statusMap[normalizedStatus] || { text: status || "Khác", className: "pending" };
 }
 
 function normalizeOrder(order) {
@@ -153,7 +153,7 @@ function normalizeOrder(order) {
 
   return {
     ...order,
-    code: order?.order_code || order?.code || (order?.id ? `#${order.id}` : "Không có mã"),
+    code: order?.order_code || order?.code || (order?.id ? `#${order.id}` : "Không mã"),
     createdAt: order?.created_at || order?.createdAt || null,
     customer: order?.customer_name || order?.customer?.full_name || order?.customer?.name || (typeof order?.customer === "string" ? order.customer : "Khách lẻ"),
     orderType: order?.order_type || (order?.table_name ? "Tại quán" : "Mang đi"),
@@ -193,7 +193,7 @@ function KpiCard({ label, value, change, trend, icon, variant }) {
       <div className="kpi-card__top">
         <div className="kpi-icon">{icon}</div>
         <span className={`kpi-change ${positive ? "positive" : "negative"}`}>
-          {positive ? <ArrowUpRight size={15} /> : <ArrowDownRight size={15} />}
+          {positive ? <ArrowUpRight size={14} /> : <ArrowDownRight size={14} />}
           {change}
         </span>
       </div>
@@ -228,9 +228,9 @@ function formatPercent(value) {
 }
 
 function formatMiningDate(value) {
-  if (!value) return "Chưa có thời gian";
+  if (!value) return "Chưa có ngày";
   const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "Chưa có thời gian";
+  if (Number.isNaN(date.getTime())) return "Chưa có ngày";
   return dateTimeFormatter.format(date);
 }
 
@@ -258,12 +258,12 @@ function SmartAnalysisCard({ miningHighlights, loading, error }) {
       <div className="card-heading smart-analysis__heading">
         <div className="smart-analysis__title">
           <h2>Phân tích thông minh</h2>
-          <p>Kết quả Data Mining gần nhất, dùng để xem nhanh trên Dashboard.</p>
+          <p>Kết quả Data Mining gần nhất</p>
         </div>
         <div className="analysis-actions">
           <span className="analysis-badge">Data Mining</span>
           <Link to="/mining" className="analysis-link">
-            Xem chi tiết <ChevronRight size={16} />
+            Xem thêm <ChevronRight size={15} />
           </Link>
         </div>
       </div>
@@ -287,15 +287,15 @@ function SmartAnalysisCard({ miningHighlights, loading, error }) {
               <>
                 <div className="apriori-statistics">
                   <div>
-                    <span>Số giao dịch</span>
+                    <span>Số đơn</span>
                     <strong>{Number(aprioriResult.transaction_count || 0)}</strong>
                   </div>
                   <div>
-                    <span>Số sản phẩm</span>
+                    <span>Mặt hàng</span>
                     <strong>{Number(aprioriResult.product_count || 0)}</strong>
                   </div>
                   <div>
-                    <span>Số luật kết hợp</span>
+                    <span>Luật</span>
                     <strong>{rules.length}</strong>
                   </div>
                 </div>
@@ -306,7 +306,7 @@ function SmartAnalysisCard({ miningHighlights, loading, error }) {
                       <div className="rule-item" key={`${getRuleProducts(rule.antecedents)}-${index}`}>
                         <div className="rule-item__content">
                           <strong>{getRuleProducts(rule.antecedents)}</strong>
-                          <span> nên gợi ý <b>{getRuleProducts(rule.consequents)}</b></span>
+                          <span> gợi ý <b>{getRuleProducts(rule.consequents)}</b></span>
                         </div>
                         <em>Tin cậy {formatPercent(rule.confidence)}</em>
                       </div>
@@ -315,8 +315,8 @@ function SmartAnalysisCard({ miningHighlights, loading, error }) {
                 ) : frequentItemsets.length > 0 ? (
                   <div className="frequent-section">
                     <div className="frequent-heading">
-                      <span>Sản phẩm xuất hiện phổ biến</span>
-                      <small>Chưa đủ điều kiện tạo luật kết hợp</small>
+                      <span>Mặt hàng phổ biến</span>
+                      <small>Chưa đủ điều kiện tạo luật</small>
                     </div>
                     <div className="frequent-list">
                       {frequentItemsets.slice(0, 3).map((item, index) => (
@@ -331,11 +331,11 @@ function SmartAnalysisCard({ miningHighlights, loading, error }) {
                     </div>
                   </div>
                 ) : (
-                  <div className="smart-analysis__empty">Chưa tìm thấy sản phẩm phổ biến hoặc luật kết hợp.</div>
+                  <div className="smart-analysis__empty">Chưa đủ dữ liệu tạo luật kết hợp.</div>
                 )}
               </>
             ) : (
-              <div className="smart-analysis__empty">Chưa có lần chạy Apriori nào.</div>
+              <div className="smart-analysis__empty">Chưa chạy phân tích Apriori.</div>
             )}
           </article>
 
@@ -361,15 +361,15 @@ function SmartAnalysisCard({ miningHighlights, loading, error }) {
                     ))}
                   </div>
                 ) : (
-                  <div className="smart-analysis__empty">Chưa có dữ liệu doanh thu dự báo.</div>
+                  <div className="smart-analysis__empty">Chưa có kết quả dự báo.</div>
                 )}
               </>
             ) : (
               <div className="forecast-empty">
-                <div className="forecast-empty__icon"><TrendingUp size={25} /></div>
+                <div className="forecast-empty__icon"><TrendingUp size={22} /></div>
                 <strong>Chưa có kết quả dự báo</strong>
-                <p>Hãy sang trang Data Mining để chạy Forecasting.</p>
-                <Link to="/mining">Chạy Forecasting <ChevronRight size={15} /></Link>
+                <p>Khởi chạy mô hình dự báo từ trang Data Mining.</p>
+                <Link to="/mining">Sang trang Mining <ChevronRight size={14} /></Link>
               </div>
             )}
           </article>
@@ -387,7 +387,6 @@ export default function Dashboard() {
   const [dashboardData, setDashboardData] = useState(null);
   const [chartData, setChartData] = useState([]);
 
-  // State danh sách đơn hàng & Phân trang từ Backend
   const [orders, setOrders] = useState([]);
   const [orderPagination, setOrderPagination] = useState({
     current_page: 1,
@@ -421,7 +420,6 @@ export default function Dashboard() {
     return false;
   }
 
-  // Fetch Dashboard KPI & Chart
   useEffect(() => {
     let isMounted = true;
     async function fetchDashboardSummary() {
@@ -458,7 +456,6 @@ export default function Dashboard() {
     return () => { isMounted = false; };
   }, [period, selectedDate]);
 
-  // Fetch Data Mining Highlights
   useEffect(() => {
     let isMounted = true;
     async function loadMiningHighlights() {
@@ -484,7 +481,6 @@ export default function Dashboard() {
     return () => { isMounted = false; };
   }, []);
 
-  // Fetch Orders với Server-side Pagination & Search
   useEffect(() => {
     let isMounted = true;
     const debounceTimer = setTimeout(async () => {
@@ -522,7 +518,6 @@ export default function Dashboard() {
             has_previous: Boolean(paginationData.has_previous),
           }));
         } else {
-          // Fallback nếu backend chưa bọc pagination object
           setOrderPagination((prev) => ({
             ...prev,
             total_items: normalizedOrders.length,
@@ -547,7 +542,7 @@ export default function Dashboard() {
       } finally {
         if (isMounted) setLoadingOrders(false);
       }
-    }, 300); // 300ms debounce khi gõ search
+    }, 300);
 
     return () => {
       isMounted = false;
@@ -595,7 +590,7 @@ export default function Dashboard() {
   const headerDateText = useMemo(() => {
     const startDate = dashboardData?.start_date;
     const endDate = dashboardData?.end_date;
-    if (!startDate || !endDate) return "Chưa có dữ liệu";
+    if (!startDate || !endDate) return "Đang chọn kỳ";
     return startDate === endDate ? startDate : `${startDate} - ${endDate}`;
   }, [dashboardData]);
 
@@ -613,17 +608,17 @@ export default function Dashboard() {
     <main className="cost-dashboard">
       <header className="cost-dashboard__header">
         <div>
-          <span className="cost-dashboard__eyebrow">Báo cáo hoạt động bán hàng</span>
+          <span className="cost-dashboard__eyebrow">Báo cáo hoạt động kinh doanh</span>
           <h1>Chi phí và lợi nhuận</h1>
-          <p>Tổng quan doanh thu, giá vốn và lợi nhuận dựa trên dữ liệu dashboard và đơn hàng từ backend.</p>
+          <p>Tổng quan doanh thu, giá vốn và lợi nhuận theo thời gian thực.</p>
         </div>
 
         <div className="header-actions">
           <button className="secondary-action" type="button">
-            <Download size={18} /> Xuất báo cáo
+            <Download size={16} /> Xuất báo cáo
           </button>
           <button className="primary-action" type="button">
-            <CalendarDays size={18} /> {headerDateText}
+            <CalendarDays size={16} /> {headerDateText}
           </button>
         </div>
       </header>
@@ -643,10 +638,10 @@ export default function Dashboard() {
             </button>
           ))}
         </div>
-        <div className="toolbar-meta">Cập nhật lần cuối lúc {lastUpdatedText}</div>
+        <div className="toolbar-meta">Cập nhật lúc {lastUpdatedText}</div>
       </section>
 
-      <section className="period-picker" style={{ display: "flex", gap: 12, marginBottom: 20, flexWrap: "wrap" }}>
+      <section className="period-picker">
         {period === "day" && (
           <input type="date" value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} />
         )}
@@ -668,8 +663,8 @@ export default function Dashboard() {
         )}
       </section>
 
-      {loadingSummary && <div className="dashboard-card" style={{ marginBottom: 20, padding: 16 }}>Đang tải dữ liệu dashboard...</div>}
-      {summaryError && <div className="dashboard-card" style={{ marginBottom: 20, padding: 16, color: "#b91c1c" }}>{summaryError}</div>}
+      {loadingSummary && <div className="dashboard-card status-msg">Đang tải dữ liệu dashboard...</div>}
+      {summaryError && <div className="dashboard-card status-msg error">{summaryError}</div>}
 
       <section className="kpi-grid">
         <KpiCard
@@ -677,15 +672,15 @@ export default function Dashboard() {
           value={formatCurrency(summary.totalRevenue)}
           change={`${summary.totalOrders} đơn`}
           trend="up"
-          icon={<CircleDollarSign size={22} />}
+          icon={<CircleDollarSign size={20} />}
           variant="primary"
         />
         <KpiCard
           label="Tổng giá vốn"
           value={formatCurrency(summary.totalCost)}
-          change={summary.totalOrders > 0 ? formatCurrency(summary.totalCost / summary.totalOrders) : formatCurrency(0)}
+          change={summary.totalOrders > 0 ? formatCurrency(summary.totalCost / summary.totalOrders) : "0đ"}
           trend="up"
-          icon={<WalletCards size={22} />}
+          icon={<WalletCards size={20} />}
           variant="neutral"
         />
         <KpiCard
@@ -693,15 +688,15 @@ export default function Dashboard() {
           value={formatCurrency(summary.totalProfit)}
           change={`${summary.profitMargin.toFixed(1)}%`}
           trend={summary.totalProfit >= 0 ? "up" : "down"}
-          icon={<TrendingUp size={22} />}
+          icon={<TrendingUp size={20} />}
           variant="success"
         />
         <KpiCard
-          label="Giá trị đơn trung bình"
+          label="Giá trị đơn TB"
           value={formatCurrency(summary.averageOrderValue)}
-          change={`${profitableOrdersCount}/${orders.length} đơn có lãi (trang hiện tại)`}
+          change={`${profitableOrdersCount}/${orders.length} có lãi`}
           trend="up"
-          icon={<PackageCheck size={22} />}
+          icon={<PackageCheck size={20} />}
           variant="purple"
         />
       </section>
@@ -711,14 +706,14 @@ export default function Dashboard() {
           <div className="card-heading">
             <div>
               <h2>Xu hướng doanh thu</h2>
-              <p>Dữ liệu theo bộ lọc đang chọn</p>
+              <p>Biểu đồ theo bộ lọc</p>
             </div>
-            <button className="icon-action" type="button"><Filter size={18} /></button>
+            <button className="icon-action" type="button"><Filter size={16} /></button>
           </div>
           <div className="chart-wrapper">
             {chartData.length > 0 ? (
-              <ResponsiveContainer width="100%" height={320}>
-                <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -8, bottom: 0 }}>
+              <ResponsiveContainer width="100%" height={290}>
+                <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -14, bottom: 0 }}>
                   <defs>
                     <linearGradient id="revenueFill" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="5%" stopColor="#2563eb" stopOpacity={0.25} />
@@ -726,17 +721,15 @@ export default function Dashboard() {
                     </linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="4 4" vertical={false} stroke="#e9edf5" />
-                  <XAxis dataKey="label" tickLine={false} axisLine={false} tick={{ fill: "#7b8496", fontSize: 12 }} />
-                  <YAxis tickLine={false} axisLine={false} tickFormatter={formatCompactCurrency} tick={{ fill: "#7b8496", fontSize: 12 }} />
-                  <Tooltip formatter={(value) => formatCurrency(value)} contentStyle={{ borderRadius: 14, border: "1px solid #e5e9f2" }} />
+                  <XAxis dataKey="label" tickLine={false} axisLine={false} tick={{ fill: "#7b8496", fontSize: 11 }} />
+                  <YAxis tickLine={false} axisLine={false} tickFormatter={formatCompactCurrency} tick={{ fill: "#7b8496", fontSize: 11 }} />
+                  <Tooltip formatter={(value) => formatCurrency(value)} contentStyle={{ borderRadius: 12, border: "1px solid #e5e9f2" }} />
                   <Legend />
-                  <Area type="monotone" dataKey="revenue" name="Doanh thu" stroke="#2563eb" strokeWidth={3} fill="url(#revenueFill)" />
+                  <Area type="monotone" dataKey="revenue" name="Doanh thu" stroke="#2563eb" strokeWidth={2.5} fill="url(#revenueFill)" />
                 </AreaChart>
               </ResponsiveContainer>
             ) : (
-              <div style={{ height: 320, display: "flex", justifyContent: "center", alignItems: "center", color: "#7b8496" }}>
-                Chưa có dữ liệu biểu đồ
-              </div>
+              <div className="chart-empty">Chưa có dữ liệu biểu đồ</div>
             )}
           </div>
         </article>
@@ -745,7 +738,7 @@ export default function Dashboard() {
           <div className="card-heading">
             <div>
               <h2>Hiệu quả kinh doanh</h2>
-              <p>Tóm tắt theo dữ liệu hiện tại</p>
+              <p>Tóm tắt tỷ suất lợi nhuận</p>
             </div>
           </div>
           <div className="profit-ring">
@@ -757,14 +750,14 @@ export default function Dashboard() {
           </div>
           <div className="insight-list">
             <InsightRow label="Giá trị đơn trung bình" value={formatCurrency(summary.averageOrderValue)} />
-            <InsightRow label="Chi phí trung bình/đơn" value={formatCurrency(summary.totalOrders > 0 ? summary.totalCost / summary.totalOrders : 0)} />
-            <InsightRow label="Đơn có lãi (trang hiện tại)" value={`${profitableOrdersCount}/${orders.length}`} />
+            <InsightRow label="Giá vốn TB / đơn" value={formatCurrency(summary.totalOrders > 0 ? summary.totalCost / summary.totalOrders : 0)} />
+            <InsightRow label="Số đơn có lãi" value={`${profitableOrdersCount}/${orders.length}`} />
           </div>
           <div className="business-insight">
-            <div className="business-insight__icon"><TrendingUp size={19} /></div>
+            <div className="business-insight__icon"><TrendingUp size={18} /></div>
             <div>
-              <strong>{summary.totalProfit >= 0 ? "Hoạt động đang tích cực" : "Cần tối ưu giá vốn"}</strong>
-              <p>{summary.totalProfit >= 0 ? "Lợi nhuận đang dương trong khoảng thời gian đã chọn." : "Hãy kiểm tra lại giá vốn từng món và tổng doanh thu."}</p>
+              <strong>{summary.totalProfit >= 0 ? "Kinh doanh tích cực" : "Cần tối ưu giá vốn"}</strong>
+              <p>{summary.totalProfit >= 0 ? "Lợi nhuận đang dương trong kỳ đã chọn." : "Kiểm tra giá vốn nguyên liệu và các chi phí phát sinh."}</p>
             </div>
           </div>
         </article>
@@ -772,17 +765,17 @@ export default function Dashboard() {
 
       <SmartAnalysisCard miningHighlights={miningHighlights} loading={loadingMining} error={miningError} />
 
-      {/* ==================== PHẦN BẢNG ĐƠN HÀNG (PHÂN TRANG BACKEND) ==================== */}
+      {/* ================= BẢNG & DANH SÁCH ĐƠN HÀNG ================= */}
       <section className="dashboard-card orders-section">
         <div className="orders-header">
           <div>
             <h2>Chi tiết theo đơn hàng</h2>
-            <p>Danh sách lấy từ API đơn hàng phân trang theo thời gian thực.</p>
+            <p>Danh sách phân trang theo thời gian thực.</p>
           </div>
 
           <div className="orders-tools">
             <label className="search-box">
-              <Search size={18} />
+              <Search size={16} />
               <input
                 type="search"
                 value={searchTerm}
@@ -793,17 +786,14 @@ export default function Dashboard() {
                 }}
               />
             </label>
-
-            <button className="filter-button" type="button">
-              <Filter size={18} /> Bộ lọc
-            </button>
           </div>
         </div>
 
-        {loadingOrders && <div style={{ padding: 16 }}>Đang tải danh sách đơn hàng...</div>}
-        {ordersError && <div style={{ padding: 16, color: "#b91c1c" }}>{ordersError}</div>}
+        {loadingOrders && <div className="status-msg">Đang tải danh sách đơn hàng...</div>}
+        {ordersError && <div className="status-msg error">{ordersError}</div>}
 
-        <div className="orders-table-wrapper">
+        {/* 1. Dạng Table cho Desktop / Tablet lớn */}
+        <div className="desktop-orders-table-wrapper">
           <table className="orders-table">
             <thead>
               <tr>
@@ -812,7 +802,7 @@ export default function Dashboard() {
                 <th>Doanh thu</th>
                 <th>Giá vốn</th>
                 <th>Lợi nhuận</th>
-                <th>Biên lợi nhuận</th>
+                <th>Biên LN</th>
                 <th>Trạng thái</th>
                 <th aria-label="Chi tiết" />
               </tr>
@@ -827,7 +817,7 @@ export default function Dashboard() {
                   <tr key={order.id} onClick={() => setSelectedOrder(order)}>
                     <td>
                       <div className="order-identity">
-                        <div className="order-icon"><ShoppingBag size={17} /></div>
+                        <div className="order-icon"><ShoppingBag size={16} /></div>
                         <div>
                           <strong>{order.code}</strong>
                           <span>{order.customer}</span>
@@ -861,12 +851,12 @@ export default function Dashboard() {
                         type="button"
                         className="row-action"
                         aria-label={`Xem ${order.code}`}
-                        onClick={(event) => {
-                          event.stopPropagation();
+                        onClick={(e) => {
+                          e.stopPropagation();
                           setSelectedOrder(order);
                         }}
                       >
-                        <ChevronRight size={18} />
+                        <ChevronRight size={17} />
                       </button>
                     </td>
                   </tr>
@@ -875,48 +865,107 @@ export default function Dashboard() {
 
               {!loadingOrders && orders.length === 0 && (
                 <tr>
-                  <td colSpan={8} style={{ textAlign: "center", padding: 20 }}>
+                  <td colSpan={8} className="empty-order-msg">
                     Không tìm thấy đơn hàng nào.
                   </td>
                 </tr>
               )}
             </tbody>
           </table>
+        </div>
 
-          {/* Thanh phân trang Backend */}
-          {!loadingOrders && orderPagination.total_items > 0 && (
-            <div className="pagination-wrapper">
-              <div className="pagination-info">
-                Hiển thị{" "}
-                <strong>
-                  {(orderPagination.current_page - 1) * orderPagination.page_size + 1} -{" "}
-                  {Math.min(orderPagination.current_page * orderPagination.page_size, orderPagination.total_items)}
-                </strong>{" "}
-                trên tổng số <strong>{orderPagination.total_items}</strong> đơn hàng
-              </div>
+        {/* 2. Dạng Card List cho Điện thoại di động */}
+        <div className="mobile-orders-list">
+          {orders.map((order) => {
+            const statusInfo = getStatusInfo(order.status);
+            const orderDate = formatOrderDate(order.createdAt);
 
-              <div className="pagination-controls">
-                <div className="page-size-selector">
-                  <span>Số dòng:</span>
-                  <select value={orderPagination.page_size} onChange={handleOrderPageSizeChange}>
-                    <option value={5}>5</option>
-                    <option value={10}>10</option>
-                    <option value={20}>20</option>
-                    <option value={50}>50</option>
-                  </select>
+            return (
+              <div
+                key={order.id}
+                className="mobile-order-card"
+                onClick={() => setSelectedOrder(order)}
+              >
+                <div className="mobile-order-card__header">
+                  <div className="order-identity">
+                    <div className="order-icon"><ShoppingBag size={16} /></div>
+                    <div>
+                      <strong>{order.code}</strong>
+                      <span>{order.customer}</span>
+                    </div>
+                  </div>
+                  <span className={`status-pill ${statusInfo.className}`}>{statusInfo.text}</span>
                 </div>
 
-                <div className="pagination-buttons">
-                  <button
-                    type="button"
-                    className="page-btn"
-                    disabled={!orderPagination.has_previous}
-                    onClick={() => handleOrderPageChange(orderPagination.current_page - 1)}
-                    title="Trang trước"
-                  >
-                    <ChevronLeft size={16} />
-                  </button>
+                <div className="mobile-order-card__body">
+                  <div className="mobile-card-row">
+                    <span>Thời gian:</span>
+                    <strong>{orderDate.date} • {orderDate.time}</strong>
+                  </div>
+                  <div className="mobile-card-row">
+                    <span>Doanh thu:</span>
+                    <strong className="money-val">{formatCurrency(order.netRevenue)}</strong>
+                  </div>
+                  <div className="mobile-card-row">
+                    <span>Lợi nhuận:</span>
+                    <strong className={`money-val ${order.profit >= 0 ? "positive" : "negative"}`}>
+                      {formatCurrency(order.profit)} ({order.profitMargin.toFixed(1)}%)
+                    </strong>
+                  </div>
+                </div>
 
+                <div className="mobile-order-card__footer">
+                  <button type="button" className="mobile-detail-btn">
+                    Xem chi tiết <ChevronRight size={15} />
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+
+          {!loadingOrders && orders.length === 0 && (
+            <div className="empty-order-msg">Không tìm thấy đơn hàng nào.</div>
+          )}
+        </div>
+
+        {/* Thanh phân trang Backend */}
+        {!loadingOrders && orderPagination.total_items > 0 && (
+          <div className="pagination-wrapper">
+            <div className="pagination-info">
+              Hiển thị{" "}
+              <strong>
+                {(orderPagination.current_page - 1) * orderPagination.page_size + 1} -{" "}
+                {Math.min(orderPagination.current_page * orderPagination.page_size, orderPagination.total_items)}
+              </strong>{" "}
+              / <strong>{orderPagination.total_items}</strong> đơn
+            </div>
+
+            <div className="pagination-controls">
+              <div className="page-size-selector">
+                <select value={orderPagination.page_size} onChange={handleOrderPageSizeChange}>
+                  <option value={5}>5 / trang</option>
+                  <option value={10}>10 / trang</option>
+                  <option value={20}>20 / trang</option>
+                  <option value={50}>50 / trang</option>
+                </select>
+              </div>
+
+              <div className="pagination-buttons">
+                <button
+                  type="button"
+                  className="page-btn"
+                  disabled={!orderPagination.has_previous}
+                  onClick={() => handleOrderPageChange(orderPagination.current_page - 1)}
+                  title="Trang trước"
+                >
+                  <ChevronLeft size={16} />
+                </button>
+
+                <span className="mobile-page-indicator">
+                  {orderPagination.current_page} / {orderPagination.total_pages}
+                </span>
+
+                <div className="desktop-page-numbers">
                   {Array.from({ length: orderPagination.total_pages }, (_, i) => i + 1)
                     .filter((p) => {
                       return (
@@ -939,21 +988,21 @@ export default function Dashboard() {
                         </button>
                       </span>
                     ))}
-
-                  <button
-                    type="button"
-                    className="page-btn"
-                    disabled={!orderPagination.has_next}
-                    onClick={() => handleOrderPageChange(orderPagination.current_page + 1)}
-                    title="Trang sau"
-                  >
-                    <ChevronRight size={16} />
-                  </button>
                 </div>
+
+                <button
+                  type="button"
+                  className="page-btn"
+                  disabled={!orderPagination.has_next}
+                  onClick={() => handleOrderPageChange(orderPagination.current_page + 1)}
+                  title="Trang sau"
+                >
+                  <ChevronRight size={16} />
+                </button>
               </div>
             </div>
-          )}
-        </div>
+          </div>
+        )}
       </section>
 
       {/* Drawer Chi tiết đơn hàng */}
@@ -1002,9 +1051,9 @@ export default function Dashboard() {
                           <strong>{item.name}</strong>
                           <span>{quantity} × {formatCurrency(item.sellingPrice)}</span>
                         </div>
-                        <div>
+                        <div className="text-right">
                           <strong>{formatCurrency(revenue)}</strong>
-                          <span>Lãi {formatCurrency(revenue - cost)}</span>
+                          <span className="profit-sub">Lãi {formatCurrency(revenue - cost)}</span>
                         </div>
                       </div>
                     );
@@ -1012,8 +1061,8 @@ export default function Dashboard() {
                 ) : (
                   <div className="drawer-item">
                     <div>
-                      <strong>Chưa có chi tiết sản phẩm</strong>
-                      <span>API order chưa trả danh sách sản phẩm</span>
+                      <strong>Chưa có chi tiết món</strong>
+                      <span>API không có thông tin sản phẩm</span>
                     </div>
                   </div>
                 )}
@@ -1025,13 +1074,13 @@ export default function Dashboard() {
               <BreakdownRow label="Doanh thu bán hàng" value={selectedOrder.revenue} />
               <BreakdownRow label="Doanh thu thuần" value={selectedOrder.netRevenue} emphasized />
               <BreakdownRow label="Giá vốn sản phẩm" value={selectedOrder.productCost} />
-              <BreakdownRow label="Chi phí phát sinh" value={selectedOrder.otherCost} />
+              <BreakdownRow label="Chi phí khác" value={selectedOrder.otherCost} />
               <BreakdownRow label="Tổng chi phí" value={selectedOrder.totalCost} emphasized />
             </section>
 
             <section className="drawer-profit-card">
               <div>
-                <span>Lợi nhuận đơn hàng</span>
+                <span>Lợi nhuận đơn</span>
                 <strong>{formatCurrency(selectedOrder.profit)}</strong>
               </div>
               <div className="drawer-profit-badge">

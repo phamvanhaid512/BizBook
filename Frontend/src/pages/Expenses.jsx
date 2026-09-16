@@ -95,7 +95,6 @@ export default function ExpensesPage() {
       const expRes = await expenseApi.getExpenses(params);
       const resData = expRes.data?.data;
 
-      // Hỗ trợ cả 2 dạng data: dạng phân trang { items, pagination } hoặc fallback về array cũ
       if (resData?.items) {
         setExpenses(resData.items);
         if (resData.pagination) {
@@ -127,7 +126,11 @@ export default function ExpensesPage() {
 
   // Thay đổi trang
   const handlePageChange = (newPage) => {
-    if (newPage >= 1 && newPage <= pagination.total_pages && newPage !== pagination.current_page) {
+    if (
+      newPage >= 1 &&
+      newPage <= pagination.total_pages &&
+      newPage !== pagination.current_page
+    ) {
       setPagination((prev) => ({ ...prev, current_page: newPage }));
     }
   };
@@ -210,8 +213,11 @@ export default function ExpensesPage() {
       }));
 
       if (data?.anomaly_detected || data?.needs_human_review) {
-        const reasons = data?.anomaly_reasons?.join(", ") || "Chất lượng ảnh chưa tối ưu";
-        setOcrWarning(`Cảnh báo (${data?.confidence_score}%): ${reasons}. Vui lòng kiểm tra lại.`);
+        const reasons =
+          data?.anomaly_reasons?.join(", ") || "Chất lượng ảnh chưa tối ưu";
+        setOcrWarning(
+          `Cảnh báo (${data?.confidence_score}%): ${reasons}. Vui lòng kiểm tra lại.`
+        );
         toast.warn("Đã bóc tách dữ liệu! Hãy kiểm tra lại trước khi lưu.");
       } else {
         toast.success(`Quét thành công! Độ tin cậy ${data?.confidence_score}%`);
@@ -318,23 +324,27 @@ export default function ExpensesPage() {
 
       {/* Filter Bar */}
       <div className="expenses-filter-bar">
-        <div className="filter-group">
+        <div className="filter-group date-inputs">
           <Calendar size={16} />
-          <span>Từ:</span>
-          <input
-            type="date"
-            value={filters.start_date}
-            onChange={(e) => handleFilterChange("start_date", e.target.value)}
-          />
-          <span>Đến:</span>
-          <input
-            type="date"
-            value={filters.end_date}
-            onChange={(e) => handleFilterChange("end_date", e.target.value)}
-          />
+          <div className="filter-date-pair">
+            <span>Từ:</span>
+            <input
+              type="date"
+              value={filters.start_date}
+              onChange={(e) => handleFilterChange("start_date", e.target.value)}
+            />
+          </div>
+          <div className="filter-date-pair">
+            <span>Đến:</span>
+            <input
+              type="date"
+              value={filters.end_date}
+              onChange={(e) => handleFilterChange("end_date", e.target.value)}
+            />
+          </div>
         </div>
 
-        <div className="filter-group">
+        <div className="filter-group category-select">
           <select
             value={filters.category_id}
             onChange={(e) => handleFilterChange("category_id", e.target.value)}
@@ -353,87 +363,168 @@ export default function ExpensesPage() {
         </button>
       </div>
 
-      {/* Data Table */}
+      {/* Main Content Wrapper */}
       <div className="expenses-table-wrapper">
-        <table className="expenses-table">
-          <thead>
-            <tr>
-              <th>Ngày chi</th>
-              <th>Danh mục</th>
-              <th>Nhà cung cấp / Đơn vị</th>
-              <th>Mô tả chi tiết</th>
-              <th>Số tiền (VNĐ)</th>
-              <th>Trạng thái</th>
-              <th>Chứng từ</th>
-              <th className="text-center">Thao tác</th>
-            </tr>
-          </thead>
-          <tbody>
-            {loading ? (
+        {/* 1. HIỂN THỊ DẠNG BẢNG TRÊN MÀN HÌNH MÁY TÍNH (DESKTOP) */}
+        <div className="desktop-table-container">
+          <table className="expenses-table">
+            <thead>
               <tr>
-                <td colSpan="8" className="text-center py-4">
-                  Đang tải dữ liệu sổ chi phí...
-                </td>
+                <th>Ngày chi</th>
+                <th>Danh mục</th>
+                <th>Nhà cung cấp / Đơn vị</th>
+                <th>Mô tả chi tiết</th>
+                <th>Số tiền (VNĐ)</th>
+                <th>Trạng thái</th>
+                <th>Chứng từ</th>
+                <th className="text-center">Thao tác</th>
               </tr>
-            ) : expenses.length === 0 ? (
-              <tr>
-                <td colSpan="8" className="text-center py-4 text-muted">
-                  Không tìm thấy khoản chi nào trong khoảng thời gian này.
-                </td>
-              </tr>
-            ) : (
-              expenses.map((item) => (
-                <tr key={item.id}>
-                  <td><strong>{item.expense_date}</strong></td>
-                  <td>
+            </thead>
+            <tbody>
+              {loading ? (
+                <tr>
+                  <td colSpan="8" className="text-center py-4">
+                    Đang tải dữ liệu sổ chi phí...
+                  </td>
+                </tr>
+              ) : expenses.length === 0 ? (
+                <tr>
+                  <td colSpan="8" className="text-center py-4 text-muted">
+                    Không tìm thấy khoản chi nào trong khoảng thời gian này.
+                  </td>
+                </tr>
+              ) : (
+                expenses.map((item) => (
+                  <tr key={item.id}>
+                    <td>
+                      <strong>{item.expense_date}</strong>
+                    </td>
+                    <td>
+                      <span className="category-tag">
+                        {item.category_name || "Chi phí chung"}
+                      </span>
+                    </td>
+                    <td>{item.supplier_name || "—"}</td>
+                    <td>{item.description || "—"}</td>
+                    <td className="text-red font-weight-bold">
+                      {Number(item.amount).toLocaleString("vi-VN")} đ
+                    </td>
+                    <td>
+                      <span
+                        className={`status-badge status-${item.status.toLowerCase()}`}
+                      >
+                        {item.status === "CONFIRMED"
+                          ? "Đã xác nhận"
+                          : item.status === "DRAFT"
+                          ? "Bản nháp"
+                          : "Đã hủy"}
+                      </span>
+                    </td>
+                    <td>
+                      {item.receipt_image ? (
+                        <span className="receipt-link" title={item.receipt_image}>
+                          <FileText size={14} />{" "}
+                          {item.receipt_image.split("/").pop()}
+                        </span>
+                      ) : (
+                        <span className="text-muted">Không có</span>
+                      )}
+                    </td>
+                    <td className="text-center actions-cell">
+                      <button
+                        className="btn-icon edit"
+                        onClick={() => handleOpenModal(item)}
+                        title="Sửa"
+                      >
+                        <Edit2 size={15} />
+                      </button>
+                      <button
+                        className="btn-icon delete"
+                        onClick={() => handleDelete(item.id)}
+                        title="Xóa"
+                      >
+                        <Trash2 size={15} />
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        {/* 2. HIỂN THỊ DẠNG THẺ TRÊN MÀN HÌNH DI ĐỘNG (MOBILE CARD LIST) */}
+        <div className="mobile-expenses-list">
+          {loading ? (
+            <div className="mobile-empty-msg">Đang tải dữ liệu sổ chi phí...</div>
+          ) : expenses.length === 0 ? (
+            <div className="mobile-empty-msg">Không tìm thấy khoản chi nào.</div>
+          ) : (
+            expenses.map((item) => (
+              <div className="mobile-expense-card" key={item.id}>
+                <div className="mobile-card-top">
+                  <div>
                     <span className="category-tag">
                       {item.category_name || "Chi phí chung"}
                     </span>
-                  </td>
-                  <td>{item.supplier_name || "—"}</td>
-                  <td>{item.description || "—"}</td>
-                  <td className="text-red font-weight-bold">
-                    {Number(item.amount).toLocaleString("vi-VN")} đ
-                  </td>
-                  <td>
-                    <span className={`status-badge status-${item.status.toLowerCase()}`}>
-                      {item.status === "CONFIRMED"
-                        ? "Đã xác nhận"
-                        : item.status === "DRAFT"
-                        ? "Bản nháp"
-                        : "Đã hủy"}
-                    </span>
-                  </td>
-                  <td>
+                    <span className="mobile-card-date">{item.expense_date}</span>
+                  </div>
+                  <span
+                    className={`status-badge status-${item.status.toLowerCase()}`}
+                  >
+                    {item.status === "CONFIRMED"
+                      ? "Đã xác nhận"
+                      : item.status === "DRAFT"
+                      ? "Bản nháp"
+                      : "Đã hủy"}
+                  </span>
+                </div>
+
+                <div className="mobile-card-amount">
+                  <small>Số tiền chi</small>
+                  <strong>{Number(item.amount).toLocaleString("vi-VN")} đ</strong>
+                </div>
+
+                <div className="mobile-card-body">
+                  <div className="mobile-info-row">
+                    <span>Nơi bán/NCC:</span>
+                    <strong>{item.supplier_name || "—"}</strong>
+                  </div>
+                  <div className="mobile-info-row">
+                    <span>Ghi chú:</span>
+                    <p>{item.description || "Không có ghi chú"}</p>
+                  </div>
+                  <div className="mobile-info-row">
+                    <span>Chứng từ:</span>
                     {item.receipt_image ? (
                       <span className="receipt-link" title={item.receipt_image}>
-                        <FileText size={14} /> {item.receipt_image.split("/").pop()}
+                        <FileText size={14} />{" "}
+                        {item.receipt_image.split("/").pop()}
                       </span>
                     ) : (
                       <span className="text-muted">Không có</span>
                     )}
-                  </td>
-                  <td className="text-center actions-cell">
-                    <button
-                      className="btn-icon edit"
-                      onClick={() => handleOpenModal(item)}
-                      title="Sửa"
-                    >
-                      <Edit2 size={15} />
-                    </button>
-                    <button
-                      className="btn-icon delete"
-                      onClick={() => handleDelete(item.id)}
-                      title="Xóa"
-                    >
-                      <Trash2 size={15} />
-                    </button>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+                  </div>
+                </div>
+
+                <div className="mobile-card-actions">
+                  <button
+                    className="mobile-btn-edit"
+                    onClick={() => handleOpenModal(item)}
+                  >
+                    <Edit2 size={14} /> Chỉnh sửa
+                  </button>
+                  <button
+                    className="mobile-btn-delete"
+                    onClick={() => handleDelete(item.id)}
+                  >
+                    <Trash2 size={14} /> Xóa
+                  </button>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
 
         {/* Thanh Phân Trang (Pagination Controls) */}
         {!loading && pagination.total_items > 0 && (
@@ -442,7 +533,10 @@ export default function ExpensesPage() {
               Hiển thị{" "}
               <strong>
                 {(pagination.current_page - 1) * pagination.page_size + 1} -{" "}
-                {Math.min(pagination.current_page * pagination.page_size, pagination.total_items)}
+                {Math.min(
+                  pagination.current_page * pagination.page_size,
+                  pagination.total_items
+                )}
               </strong>{" "}
               trên tổng số <strong>{pagination.total_items}</strong> khoản chi
             </div>
@@ -450,7 +544,10 @@ export default function ExpensesPage() {
             <div className="pagination-controls">
               <div className="page-size-selector">
                 <span>Số dòng:</span>
-                <select value={pagination.page_size} onChange={handlePageSizeChange}>
+                <select
+                  value={pagination.page_size}
+                  onChange={handlePageSizeChange}
+                >
                   <option value={5}>5</option>
                   <option value={10}>10</option>
                   <option value={20}>20</option>
@@ -468,30 +565,38 @@ export default function ExpensesPage() {
                   <ChevronLeft size={16} />
                 </button>
 
-                {Array.from({ length: pagination.total_pages }, (_, i) => i + 1)
-                  .filter((p) => {
-                    return (
-                      p === 1 ||
-                      p === pagination.total_pages ||
-                      Math.abs(p - pagination.current_page) <= 1
-                    );
-                  })
-                  .map((pageNum, idx, arr) => (
-                    <React.Fragment key={pageNum}>
-                      {idx > 0 && arr[idx - 1] !== pageNum - 1 && (
-                        <span className="page-ellipsis">...</span>
-                      )}
-                      <button
-                        type="button"
-                        className={`page-btn ${
-                          pagination.current_page === pageNum ? "active" : ""
-                        }`}
-                        onClick={() => handlePageChange(pageNum)}
-                      >
-                        {pageNum}
-                      </button>
-                    </React.Fragment>
-                  ))}
+                {/* Các số trang cho Desktop */}
+                <div className="desktop-page-numbers">
+                  {Array.from({ length: pagination.total_pages }, (_, i) => i + 1)
+                    .filter((p) => {
+                      return (
+                        p === 1 ||
+                        p === pagination.total_pages ||
+                        Math.abs(p - pagination.current_page) <= 1
+                      );
+                    })
+                    .map((pageNum, idx, arr) => (
+                      <React.Fragment key={pageNum}>
+                        {idx > 0 && arr[idx - 1] !== pageNum - 1 && (
+                          <span className="page-ellipsis">...</span>
+                        )}
+                        <button
+                          type="button"
+                          className={`page-btn ${
+                            pagination.current_page === pageNum ? "active" : ""
+                          }`}
+                          onClick={() => handlePageChange(pageNum)}
+                        >
+                          {pageNum}
+                        </button>
+                      </React.Fragment>
+                    ))}
+                </div>
+
+                {/* Chỉ số trang rút gọn cho Điện thoại */}
+                <span className="mobile-page-indicator">
+                  {pagination.current_page} / {pagination.total_pages}
+                </span>
 
                 <button
                   type="button"
@@ -510,21 +615,21 @@ export default function ExpensesPage() {
       {/* Modal Ghi nhận / Sửa chi phí */}
       {isModalOpen && (
         <div className="modal-overlay">
-          <div className="modal-box" style={{ maxWidth: "520px", width: "100%" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
-              <h3 style={{ margin: 0 }}>
+          <div className="modal-box">
+            <div className="modal-top-header">
+              <h3>
                 {editingId ? "Chỉnh Sửa Khoản Chi" : "Ghi Nhận Khoản Chi Mới"}
               </h3>
               <button
                 type="button"
+                className="btn-close-modal"
                 onClick={() => setIsModalOpen(false)}
-                style={{ border: "none", background: "none", cursor: "pointer", color: "#64748b" }}
               >
                 <X size={20} />
               </button>
             </div>
 
-            <div style={{ marginBottom: "16px" }}>
+            <div className="modal-ocr-section">
               <input
                 ref={fileInputRef}
                 type="file"
@@ -533,58 +638,36 @@ export default function ExpensesPage() {
                 onChange={handleFileChange}
               />
               <div
+                className="ocr-dropzone"
                 onClick={() => fileInputRef.current?.click()}
-                style={{
-                  border: "2px dashed #cbd5e1",
-                  borderRadius: "10px",
-                  padding: "12px",
-                  textAlign: "center",
-                  cursor: "pointer",
-                  background: "#f8fafc",
-                }}
               >
                 {isAnalyzing ? (
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", color: "#2563eb" }}>
+                  <div className="ocr-status-loading">
                     <LoaderCircle className="spin" size={18} />
-                    <span style={{ fontSize: "13px", fontWeight: "600" }}>AI đang phân tích hóa đơn...</span>
+                    <span>AI đang phân tích hóa đơn...</span>
                   </div>
                 ) : previewUrl ? (
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "10px" }}>
-                    <img src={previewUrl} alt="Receipt" style={{ height: "36px", borderRadius: "4px", objectFit: "cover" }} />
-                    <span style={{ fontSize: "12px", color: "#0f172a", fontWeight: "600" }}>
-                      {selectedFile?.name} (Bấm để chọn ảnh khác)
-                    </span>
+                  <div className="ocr-status-preview">
+                    <img src={previewUrl} alt="Receipt" />
+                    <span>{selectedFile?.name} (Bấm để đổi ảnh)</span>
                   </div>
                 ) : (
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", color: "#475569" }}>
+                  <div className="ocr-status-idle">
                     <UploadCloud size={18} color="#2563eb" />
-                    <span style={{ fontSize: "13px", fontWeight: "600" }}>Tải lên ảnh hóa đơn / chứng từ để quét OCR</span>
+                    <span>Tải ảnh hóa đơn để quét OCR tự động</span>
                   </div>
                 )}
               </div>
 
               {ocrWarning && (
-                <div
-                  style={{
-                    marginTop: "8px",
-                    padding: "8px 12px",
-                    background: "#fef2f2",
-                    border: "1px solid #fecaca",
-                    borderRadius: "8px",
-                    color: "#dc2626",
-                    fontSize: "12px",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "6px",
-                  }}
-                >
+                <div className="ocr-warning-box">
                   <AlertTriangle size={16} />
                   <span>{ocrWarning}</span>
                 </div>
               )}
             </div>
 
-            <form onSubmit={handleSubmit}>
+            <form onSubmit={handleSubmit} className="modal-form">
               <div className="form-group">
                 <label>Danh mục chi phí *</label>
                 <select
@@ -668,7 +751,11 @@ export default function ExpensesPage() {
                   className="btn-primary"
                   disabled={isSubmitting || isAnalyzing}
                 >
-                  {isSubmitting ? "Đang lưu..." : editingId ? "Cập nhật" : "Lưu khoản chi"}
+                  {isSubmitting
+                    ? "Đang lưu..."
+                    : editingId
+                    ? "Cập nhật"
+                    : "Lưu khoản chi"}
                 </button>
               </div>
             </form>

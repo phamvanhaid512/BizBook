@@ -307,97 +307,160 @@ function Customers() {
       </div>
 
       <div className="customer-table-card">
-        <table>
-          <thead>
-            <tr>
-              <th>Khách hàng</th>
-              <th>Số điện thoại</th>
-              <th>Email</th>
-              <th>Địa chỉ</th>
-              <th>Trạng thái</th>
-              <th>Thao tác</th>
-            </tr>
-          </thead>
-
-          <tbody>
-            {isLoading ? (
+        {/* 1. BẢNG HIỂN THỊ DÀNH CHO DESKTOP */}
+        <div className="desktop-table-container">
+          <table>
+            <thead>
               <tr>
-                <td colSpan="6" className="empty-table">
-                  Đang tải danh sách khách hàng...
-                </td>
+                <th>Khách hàng</th>
+                <th>Số điện thoại</th>
+                <th>Email</th>
+                <th>Địa chỉ</th>
+                <th>Trạng thái</th>
+                <th>Thao tác</th>
               </tr>
-            ) : customers.length > 0 ? (
-              customers.map((customer) => (
-                <tr key={customer.id}>
-                  <td>
-                    <div className="customer-info-cell">
-                      <div className="customer-avatar">
-                        {customer.customer_name?.charAt(0)}
-                      </div>
+            </thead>
 
-                      <div>
-                        <strong>{customer.customer_name}</strong>
-                        <p>ID: #{customer.id}</p>
-                      </div>
-                    </div>
-                  </td>
-
-                  <td>{customer.phone || "Chưa có"}</td>
-                  <td>{customer.email || "Chưa có"}</td>
-                  <td>{customer.address || "Chưa có"}</td>
-
-                  <td>
-                    <span
-                      className={
-                        customer.status === "ACTIVE"
-                          ? "customer-status active"
-                          : "customer-status inactive"
-                      }
-                    >
-                      {customer.status === "ACTIVE" ? "Hoạt động" : "Ngừng"}
-                    </span>
-                  </td>
-
-                  <td>
-                    <div className="customer-actions">
-                      <button
-                        className="edit-btn"
-                        onClick={() => openEditModal(customer)}
-                      >
-                        Sửa
-                      </button>
-
-                      <button
-                        className="delete-btn"
-                        onClick={() => openDeleteModal(customer)}
-                      >
-                        Xóa
-                      </button>
-                    </div>
+            <tbody>
+              {isLoading ? (
+                <tr>
+                  <td colSpan="6" className="empty-table">
+                    Đang tải danh sách khách hàng...
                   </td>
                 </tr>
-              ))
-            ) : (
-              <tr>
-                <td colSpan="6" className="empty-table">
-                  Không có khách hàng nào
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+              ) : customers.length > 0 ? (
+                customers.map((customer) => (
+                  <tr key={customer.id}>
+                    <td>
+                      <div className="customer-info-cell">
+                        <div className="customer-avatar">
+                          {customer.customer_name?.charAt(0)}
+                        </div>
 
+                        <div>
+                          <strong>{customer.customer_name}</strong>
+                          <p>ID: #{customer.id}</p>
+                        </div>
+                      </div>
+                    </td>
+
+                    <td>{customer.phone || "Chưa có"}</td>
+                    <td>{customer.email || "Chưa có"}</td>
+                    <td>{customer.address || "Chưa có"}</td>
+
+                    <td>
+                      <span
+                        className={
+                          customer.status === "ACTIVE"
+                            ? "customer-status active"
+                            : "customer-status inactive"
+                        }
+                      >
+                        {customer.status === "ACTIVE" ? "Hoạt động" : "Ngừng"}
+                      </span>
+                    </td>
+
+                    <td>
+                      <div className="customer-actions">
+                        <button
+                          className="edit-btn"
+                          onClick={() => openEditModal(customer)}
+                        >
+                          Sửa
+                        </button>
+
+                        <button
+                          className="delete-btn"
+                          onClick={() => openDeleteModal(customer)}
+                        >
+                          Xóa
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan="6" className="empty-table">
+                    Không có khách hàng nào
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        {/* 2. DANH SÁCH DẠNG THẺ DÀNH CHO MOBILE & TABLET */}
+        <div className="mobile-customer-list">
+          {isLoading ? (
+            <div className="empty-table">Đang tải danh sách khách hàng...</div>
+          ) : customers.length > 0 ? (
+            customers.map((customer) => (
+              <div className="mobile-customer-card" key={customer.id}>
+                <div className="mobile-customer-card__top">
+                  <div className="customer-info-cell">
+                    <div className="customer-avatar">
+                      {customer.customer_name?.charAt(0)}
+                    </div>
+                    <div>
+                      <strong>{customer.customer_name}</strong>
+                      <p>ID: #{customer.id}</p>
+                    </div>
+                  </div>
+                  <span
+                    className={
+                      customer.status === "ACTIVE"
+                        ? "customer-status active"
+                        : "customer-status inactive"
+                    }
+                  >
+                    {customer.status === "ACTIVE" ? "Hoạt động" : "Ngừng"}
+                  </span>
+                </div>
+
+                <div className="mobile-customer-card__body">
+                  <div className="mobile-info-row">
+                    <span>Số điện thoại:</span>
+                    <strong>{customer.phone || "Chưa có"}</strong>
+                  </div>
+                  <div className="mobile-info-row">
+                    <span>Email:</span>
+                    <strong>{customer.email || "Chưa có"}</strong>
+                  </div>
+                  <div className="mobile-info-row">
+                    <span>Địa chỉ:</span>
+                    <strong>{customer.address || "Chưa có"}</strong>
+                  </div>
+                </div>
+
+                <div className="mobile-customer-card__actions">
+                  <button
+                    className="edit-btn"
+                    onClick={() => openEditModal(customer)}
+                  >
+                    Sửa
+                  </button>
+                  <button
+                    className="delete-btn"
+                    onClick={() => openDeleteModal(customer)}
+                  >
+                    Xóa
+                  </button>
+                </div>
+              </div>
+            ))
+          ) : (
+            <div className="empty-table">Không có khách hàng nào</div>
+          )}
+        </div>
+
+        {/* PHÂN TRANG RESPONSIVE */}
         <div className="pagination-box">
           <div className="pagination-left">
             <div className="pagination-info">
               Hiển thị <strong>{getStartItem()}</strong> -{" "}
               <strong>{getEndItem()}</strong> /{" "}
-              <strong>{pagination.total_items || 0}</strong> khách hàng
-            </div>
-
-            <div className="pagination-page">
-              Trang <strong>{currentPage}</strong> /{" "}
-              <strong>{pagination.total_pages || 1}</strong>
+              <strong>{pagination.total_items || 0}</strong> khách
             </div>
           </div>
 
@@ -416,24 +479,30 @@ function Customers() {
               Trước
             </button>
 
-            {visiblePages.map((page) =>
-              typeof page === "string" ? (
-                <span className="pagination-ellipsis" key={page}>
-                  ...
-                </span>
-              ) : (
-                <button
-                  key={page}
-                  type="button"
-                  disabled={isLoading}
-                  className={currentPage === page ? "active-page" : ""}
-                  aria-current={currentPage === page ? "page" : undefined}
-                  onClick={() => setCurrentPage(page)}
-                >
-                  {page}
-                </button>
-              )
-            )}
+            <div className="desktop-page-numbers">
+              {visiblePages.map((page) =>
+                typeof page === "string" ? (
+                  <span className="pagination-ellipsis" key={page}>
+                    ...
+                  </span>
+                ) : (
+                  <button
+                    key={page}
+                    type="button"
+                    disabled={isLoading}
+                    className={currentPage === page ? "active-page" : ""}
+                    aria-current={currentPage === page ? "page" : undefined}
+                    onClick={() => setCurrentPage(page)}
+                  >
+                    {page}
+                  </button>
+                )
+              )}
+            </div>
+
+            <span className="mobile-page-indicator">
+              {currentPage} / {pagination.total_pages || 1}
+            </span>
 
             <button
               disabled={isLoading || !pagination.has_next}

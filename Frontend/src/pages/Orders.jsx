@@ -8,6 +8,9 @@ import {
   PackageCheck,
   ShoppingBag,
   XCircle,
+  ArrowLeft,
+  ListFilter,
+  ReceiptText,
 } from "lucide-react";
 
 import orderApi from "../api/orderApi";
@@ -39,7 +42,6 @@ function formatOrderDateTime(value) {
   if (!value) return "Chưa có thời gian";
 
   const date = new Date(value);
-
   if (Number.isNaN(date.getTime())) {
     return value;
   }
@@ -57,6 +59,9 @@ function Orders() {
   const [orders, setOrders] = useState([]);
   const [selectedOrder, setSelectedOrder] = useState(null);
 
+  // Tab hiển thị trên điện thoại: 'list' (Danh sách) hoặc 'detail' (Chi tiết)
+  const [mobileTab, setMobileTab] = useState("list");
+
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [filterType, setFilterType] = useState("day");
   const [selectedDate, setSelectedDate] = useState(getTodayDate());
@@ -72,41 +77,32 @@ function Orders() {
       text: "Chờ xác nhận",
       step: 1,
       className: "pending",
-      icon: <Clock3 size={16} />,
+      icon: <Clock3 size={15} />,
     },
     PROCESSING: {
       text: "Đang chuẩn bị",
       step: 2,
       className: "processing",
-      icon: <PackageCheck size={16} />,
+      icon: <PackageCheck size={15} />,
     },
     COMPLETED: {
       text: "Hoàn thành",
       step: 3,
       className: "completed",
-      icon: <CheckCircle2 size={16} />,
+      icon: <CheckCircle2 size={15} />,
     },
     CANCELLED: {
       text: "Đã hủy",
       step: 0,
       className: "cancelled",
-      icon: <XCircle size={16} />,
+      icon: <XCircle size={15} />,
     },
   };
 
   useEffect(() => {
-    if (filterType === "day") {
-      setSelectedDate(getTodayDate());
-    }
-
-    if (filterType === "month") {
-      setSelectedDate(getCurrentMonth());
-    }
-
-    if (filterType === "year") {
-      setSelectedDate(getCurrentYear());
-    }
-
+    if (filterType === "day") setSelectedDate(getTodayDate());
+    if (filterType === "month") setSelectedDate(getCurrentMonth());
+    if (filterType === "year") setSelectedDate(getCurrentYear());
     setCurrentPage(1);
   }, [filterType]);
 
@@ -120,9 +116,7 @@ function Orders() {
       page_size: itemsPerPage,
     };
 
-    if (statusFilter !== "ALL") {
-      params.status = statusFilter;
-    }
+    if (statusFilter !== "ALL") params.status = statusFilter;
 
     if (filterType === "day") {
       params.filter = "day";
@@ -147,7 +141,6 @@ function Orders() {
   const loadOrders = async () => {
     try {
       setLoading(true);
-
       const res = await orderApi.getAll(buildFilterParams());
       const result = res.data?.data || {};
       const orderItems = result.items || [];
@@ -158,20 +151,23 @@ function Orders() {
       setSelectedOrder((prev) => {
         if (!orderItems.length) return null;
         if (!prev) return orderItems[0];
-
         const matchedOrder = orderItems.find((item) => item.id === prev.id);
         return matchedOrder || orderItems[0];
       });
     } catch (error) {
       toast.error("Không thể tải danh sách đơn hàng");
       console.log("Lỗi load đơn hàng:", error);
-
       setOrders([]);
       setSelectedOrder(null);
       setPagination(initialPagination);
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleSelectOrderMobile = (order) => {
+    setSelectedOrder(order);
+    setMobileTab("detail"); // Tự động mở chi tiết đơn trên mobile khi click
   };
 
   const handleStatusFilter = (e) => {
@@ -203,7 +199,7 @@ function Orders() {
         text: "Chờ xác nhận",
         step: 1,
         className: "pending",
-        icon: <Clock3 size={16} />,
+        icon: <Clock3 size={15} />,
       }
     );
   };
@@ -217,14 +213,9 @@ function Orders() {
 
     const socket = new WebSocket(wsUrl);
 
-    socket.onopen = () => {
-      console.log(`WebSocket Connected successfully to order: ${selectedOrder.id}`);
-    };
-
     socket.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
-
         if (data?.status) {
           setOrders((prevOrders) =>
             prevOrders.map((order) =>
@@ -257,21 +248,11 @@ function Orders() {
           });
         }
       } catch (error) {
-        console.error("Error parsing WebSocket message:", error);
+        console.error("Lỗi WebSocket:", error);
       }
     };
 
-    socket.onclose = (event) => {
-      console.log("WebSocket Closed. Code:", event.code);
-    };
-
-    socket.onerror = (error) => {
-      console.error("WebSocket Error:", error);
-    };
-
-    return () => {
-      socket.close();
-    };
+    return () => socket.close();
   }, [selectedOrder?.id]);
 
   const updateOrderStatus = async (status) => {
@@ -279,7 +260,7 @@ function Orders() {
 
     try {
       await orderApi.updatOrderStatus(selectedOrder.id, { status });
-      toast.success("Cập nhật trạng thái đơn hàng thành công");
+      toast.success("Cập nhật trạng thái thành công");
 
       setOrders((prevOrders) =>
         prevOrders.map((order) =>
@@ -287,17 +268,9 @@ function Orders() {
         )
       );
 
-      setSelectedOrder((prev) =>
-        prev
-          ? {
-              ...prev,
-              status,
-            }
-          : prev
-      );
+      setSelectedOrder((prev) => (prev ? { ...prev, status } : prev));
     } catch (error) {
       toast.error(error.response?.data?.message || "Cập nhật trạng thái thất bại");
-      console.log("Lỗi cập nhật trạng thái:", error);
     }
   };
 
@@ -320,16 +293,10 @@ function Orders() {
       );
 
       setSelectedOrder((prev) =>
-        prev
-          ? {
-              ...prev,
-              payment_status: "PAID",
-            }
-          : prev
+        prev ? { ...prev, payment_status: "PAID" } : prev
       );
     } catch (error) {
       toast.error(error.response?.data?.message || "Cập nhật thanh toán thất bại");
-      console.log("Lỗi cập nhật thanh toán:", error);
     }
   };
 
@@ -360,44 +327,63 @@ function Orders() {
 
   return (
     <div className="orders-page">
+      {/* Top Header */}
       <div className="orders-page__top">
         <div className="orders-header">
           <div>
             <span className="orders-header__eyebrow">Quản lý vận hành</span>
             <h1>Quản lý đơn hàng</h1>
-            <p>Theo dõi đơn QR realtime với giao diện gọn gàng, thoáng và dễ thao tác.</p>
+            <p>Theo dõi và điều phối đơn QR thời gian thực.</p>
           </div>
 
           <div className="orders-live">
-            <span></span>
+            <span className="live-pulse-dot"></span>
             LIVE ORDER
           </div>
         </div>
 
+        {/* Stats Grid */}
         <div className="orders-stat-grid">
           <div className="order-stat-card orange">
             <span>Tổng đơn</span>
             <strong>{pagination.total_items || 0}</strong>
           </div>
-
           <div className="order-stat-card blue">
             <span>Trang hiện tại</span>
             <strong>{pagination.current_page || currentPage}</strong>
           </div>
-
           <div className="order-stat-card green">
-            <span>Tổng trang</span>
+            <span>Tổng số trang</span>
             <strong>{pagination.total_pages || 1}</strong>
           </div>
-
           <div className="order-stat-card red">
-            <span>Số đơn trang này</span>
+            <span>Đơn trang này</span>
             <strong>{orders.length}</strong>
           </div>
         </div>
       </div>
 
-      <div className="orders-layout">
+      {/* Tab bar chỉ xuất hiện trên thiết bị di động */}
+      <div className="mobile-view-tabs">
+        <button
+          className={mobileTab === "list" ? "active" : ""}
+          onClick={() => setMobileTab("list")}
+        >
+          <ListFilter size={17} />
+          Danh sách ({orders.length})
+        </button>
+        <button
+          className={mobileTab === "detail" ? "active" : ""}
+          onClick={() => setMobileTab("detail")}
+          disabled={!selectedOrder}
+        >
+          <ReceiptText size={17} />
+          {selectedOrder ? `Chi tiết #${selectedOrder.order_code}` : "Chi tiết"}
+        </button>
+      </div>
+
+      <div className={`orders-layout view-${mobileTab}`}>
+        {/* ================= CỘT 1: DANH SÁCH ĐƠN ================= */}
         <section className="orders-list-card">
           <div className="orders-list-top">
             <div className="orders-list-top__title">
@@ -407,7 +393,7 @@ function Orders() {
 
             <div className="orders-filters">
               <select value={statusFilter} onChange={handleStatusFilter}>
-                <option value="ALL">Tất cả</option>
+                <option value="ALL">Tất cả trạng thái</option>
                 <option value="PENDING">Chờ xác nhận</option>
                 <option value="PROCESSING">Đang chuẩn bị</option>
                 <option value="COMPLETED">Hoàn thành</option>
@@ -421,11 +407,19 @@ function Orders() {
               </select>
 
               {filterType === "day" && (
-                <input type="date" value={selectedDate} onChange={handleDateChange} />
+                <input
+                  type="date"
+                  value={selectedDate}
+                  onChange={handleDateChange}
+                />
               )}
 
               {filterType === "month" && (
-                <input type="month" value={selectedDate} onChange={handleDateChange} />
+                <input
+                  type="month"
+                  value={selectedDate}
+                  onChange={handleDateChange}
+                />
               )}
 
               {filterType === "year" && (
@@ -458,17 +452,16 @@ function Orders() {
                         ? "order-list-item active"
                         : "order-list-item"
                     }
-                    onClick={() => setSelectedOrder(order)}
+                    onClick={() => handleSelectOrderMobile(order)}
                   >
                     <div className="order-list-item__top">
                       <div>
                         <h3>{order.order_code}</h3>
                         <p>
-                          {order.table_name || "Chưa có bàn"} •{" "}
+                          {order.table_name || "Khách mang đi"} •{" "}
                           {formatOrderDateTime(order.created_at)}
                         </p>
                       </div>
-
                       <strong>{formatMoney(order.total_amount)}</strong>
                     </div>
 
@@ -485,7 +478,7 @@ function Orders() {
                             : "payment unpaid"
                         }
                       >
-                        <CreditCard size={14} />
+                        <CreditCard size={13} />
                         {order.payment_status === "PAID"
                           ? "Đã thanh toán"
                           : "Chưa thanh toán"}
@@ -495,21 +488,17 @@ function Orders() {
                 );
               })
             ) : (
-              <div className="empty-orders">Không có đơn hàng nào</div>
+              <div className="empty-orders">Không tìm thấy đơn hàng nào</div>
             )}
           </div>
 
+          {/* Pagination Box */}
           <div className="pagination-box">
             <div className="pagination-left">
               <div className="pagination-info">
                 Hiển thị <strong>{getStartItem()}</strong> -{" "}
                 <strong>{getEndItem()}</strong> /{" "}
-                <strong>{pagination.total_items || 0}</strong> đơn hàng
-              </div>
-
-              <div className="pagination-page">
-                Trang <strong>{currentPage}</strong> /{" "}
-                <strong>{pagination.total_pages || 1}</strong>
+                <strong>{pagination.total_items || 0}</strong> đơn
               </div>
             </div>
 
@@ -518,57 +507,61 @@ function Orders() {
                 <option value={5}>5 / trang</option>
                 <option value={10}>10 / trang</option>
                 <option value={20}>20 / trang</option>
-                <option value={50}>50 / trang</option>
               </select>
 
-              <button disabled={!pagination.has_previous} onClick={goToPreviousPage}>
+              <button
+                disabled={!pagination.has_previous}
+                onClick={goToPreviousPage}
+              >
                 Trước
               </button>
 
-              {Array.from({ length: pagination.total_pages || 1 }, (_, index) => {
-                const pageNumber = index + 1;
+              <span className="mobile-page-indicator">
+                {currentPage} / {pagination.total_pages || 1}
+              </span>
 
-                return (
-                  <button
-                    key={pageNumber}
-                    className={currentPage === pageNumber ? "active-page" : ""}
-                    onClick={() => setCurrentPage(pageNumber)}
-                  >
-                    {pageNumber}
-                  </button>
-                );
-              })}
-
-              <button disabled={!pagination.has_next} onClick={goToNextPage}>
+              <button
+                disabled={!pagination.has_next}
+                onClick={goToNextPage}
+              >
                 Sau
               </button>
             </div>
           </div>
         </section>
 
+        {/* ================= CỘT 2: CHI TIẾT ĐƠN ================= */}
         <section className="order-detail-card">
+          {/* Nút quay lại danh sách trên điện thoại */}
+          <button
+            className="mobile-back-to-list-btn"
+            onClick={() => setMobileTab("list")}
+          >
+            <ArrowLeft size={16} /> Quay lại danh sách đơn
+          </button>
+
           {selectedOrder ? (
             <>
               <div className="detail-hero">
                 <div className="detail-hero__content">
-                  <span className="detail-hero__label">Đơn hàng đang chọn</span>
+                  <span className="detail-hero__label">Chi tiết đơn hàng</span>
                   <h2>{selectedOrder.order_code}</h2>
 
                   <div className="detail-hero__meta">
                     <span>
-                      <ShoppingBag size={15} />
+                      <ShoppingBag size={14} />
                       {selectedOrder.table_name || "Chưa có bàn"}
                     </span>
 
                     <span>
-                      <CalendarDays size={15} />
+                      <CalendarDays size={14} />
                       {formatOrderDateTime(selectedOrder.created_at)}
                     </span>
                   </div>
                 </div>
 
                 <div className="detail-hero__amount">
-                  <small>Tổng tiền</small>
+                  <small>Tổng cộng</small>
                   <strong>{formatMoney(selectedOrder.total_amount)}</strong>
                 </div>
               </div>
@@ -586,13 +579,14 @@ function Orders() {
                       : "detail-summary-chip unpaid"
                   }
                 >
-                  <CreditCard size={15} />
+                  <CreditCard size={14} />
                   {selectedOrder.payment_status === "PAID"
                     ? "Đã thanh toán"
                     : "Chưa thanh toán"}
                 </div>
               </div>
 
+              {/* Progress Stepper */}
               <div className="tracking-box">
                 <div className="tracking-row">
                   <div className={`track-step ${currentStep >= 1 ? "active" : ""}`}>
@@ -600,28 +594,27 @@ function Orders() {
                     <span>Đã nhận</span>
                   </div>
 
-                  <div className={`track-line ${currentStep >= 2 ? "active" : ""}`}></div>
+                  <div className={`track-line ${currentStep >= 2 ? "active" : ""}`} />
 
                   <div className={`track-step ${currentStep >= 2 ? "active" : ""}`}>
                     <div>2</div>
                     <span>Đang làm</span>
                   </div>
 
-                  <div className={`track-line ${currentStep >= 3 ? "active" : ""}`}></div>
+                  <div className={`track-line ${currentStep >= 3 ? "active" : ""}`} />
 
                   <div className={`track-step ${currentStep >= 3 ? "active" : ""}`}>
                     <div>3</div>
-                    <span>Hoàn thành</span>
+                    <span>Hoàn tất</span>
                   </div>
                 </div>
               </div>
 
+              {/* Food list */}
               <div className="detail-section">
                 <div className="section-header">
-                  <h3>Món khách đã đặt</h3>
-                  <span>
-                    {selectedOrder.details?.length || 0} món
-                  </span>
+                  <h3>Món khách đặt</h3>
+                  <span>{selectedOrder.details?.length || 0} món</span>
                 </div>
 
                 {selectedOrder.details && selectedOrder.details.length > 0 ? (
@@ -629,7 +622,7 @@ function Orders() {
                     {selectedOrder.details.map((item) => (
                       <div className="order-food-item" key={item.id}>
                         <div className="food-avatar">
-                          {item.product_name?.charAt(0) || "?"}
+                          {item.product_name?.charAt(0) || "M"}
                         </div>
 
                         <div className="order-food-item__content">
@@ -646,10 +639,11 @@ function Orders() {
                 )}
               </div>
 
+              {/* Detail Info */}
               <div className="detail-info">
                 <div>
-                  <span>Ghi chú</span>
-                  <strong>{selectedOrder.note || "Không có"}</strong>
+                  <span>Ghi chú đơn</span>
+                  <strong>{selectedOrder.note || "Không có ghi chú"}</strong>
                 </div>
 
                 <div>
@@ -675,6 +669,7 @@ function Orders() {
                 </div>
               </div>
 
+              {/* Action Buttons */}
               <div className="order-actions-panel">
                 <button
                   className="action-confirm"
@@ -697,7 +692,7 @@ function Orders() {
                   onClick={updatePaymentStatus}
                   disabled={selectedOrder.payment_status === "PAID"}
                 >
-                  Đánh dấu đã thanh toán
+                  Đã thanh toán
                 </button>
 
                 <button
@@ -711,7 +706,7 @@ function Orders() {
             </>
           ) : (
             <div className="empty-order-detail">
-              Chưa có đơn hàng để hiển thị
+              Chưa có đơn hàng nào được chọn
             </div>
           )}
         </section>
