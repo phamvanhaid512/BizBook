@@ -14,10 +14,11 @@ from django.db import transaction
 from django.utils import timezone
 import uuid
 from decimal import Decimal
+from inventory.service import StockService
 class OrderService(BaseService):
     def __init__(self):
         super().__init__(OrderRepository(), OrderSerializer)
-
+        self._stock_service = StockService()
 
     def get_paginated(self, params):
         page = int(params.get("page", 1))
@@ -104,17 +105,15 @@ class OrderService(BaseService):
             return {
                 "success": False,
                 "message": "Dữ liệu đơn hàng không hợp lệ",
-                "data": serializer.errors
+                "data": serializer.errors,
             }
 
         validated_data = serializer.validated_data
 
-        # 1. Xử lý thông tin bàn dựa trên model Bussiness_Tables
+        # 1. Xử lý thông tin bàn
         table = None
         table_id = validated_data.get("table") or validated_data.get("table_id")
-
         if table_id:
-            # Hỗ trợ cả trường hợp serializer trả về instance model hoặc trả về ID (int/str)
             if isinstance(table_id, Bussiness_Tables):
                 table = table_id
             else:
@@ -123,7 +122,7 @@ class OrderService(BaseService):
                     return {
                         "success": False,
                         "message": f"Bàn với ID {table_id} không tồn tại",
-                        "data": None
+                        "data": None,
                     }
 
         # 2. Xử lý thông tin khách hàng
@@ -138,18 +137,18 @@ class OrderService(BaseService):
                 return {
                     "success": False,
                     "message": "Khách hàng không tồn tại",
-                    "data": None
+                    "data": None,
                 }
         elif customer_phone:
             customer, created = Customer.objects.get_or_create(
                 phone=customer_phone,
-                defaults={"customer_name": customer_name}
+                defaults={"customer_name": customer_name},
             )
             if not created and customer_name != "Khách tại bàn" and customer.customer_name != customer_name:
                 customer.customer_name = customer_name
                 customer.save(update_fields=["customer_name"])
 
-        # 3. Xử lý người tạo đơn (Khách QR tạo đơn -> None)
+        # 3. Xử lý người tạo đơn
         created_by = None
         created_by_id = validated_data.get("created_by")
         if created_by_id:
@@ -158,22 +157,22 @@ class OrderService(BaseService):
                 return {
                     "success": False,
                     "message": "Tài khoản tạo đơn không tồn tại",
-                    "data": None
+                    "data": None,
                 }
 
-        # 4. Tạo Order và OrderDetail trong transaction an toàn
+        # 4. Tạo Order và OrderDetail (Chưa trừ kho ở bước này)
         try:
             with transaction.atomic():
                 order = Order.objects.create(
                     order_code="ORD-" + str(uuid.uuid4()).replace("-", "")[:8].upper(),
-                    table=table,  # Gán đối tượng Bussiness_Tables vào đây
+                    table=table,
                     customer=customer,
                     created_by=created_by,
                     note=validated_data.get("note", ""),
                     total_amount=Decimal("0"),
                     status="PENDING",
                     payment_status="UNPAID",
-                    created_at=timezone.now()
+                    created_at=timezone.now(),
                 )
 
                 total_amount = Decimal("0")
@@ -191,14 +190,13 @@ class OrderService(BaseService):
                         product=product,
                         quantity=quantity,
                         unit_price=unit_price,
-                        total_price=total_price
+                        total_price=total_price,
                     )
                     total_amount += total_price
 
                 order.total_amount = total_amount
                 order.save(update_fields=["total_amount"])
 
-                # Tự động cập nhật bàn sang trạng thái 'OCCUPIED' nếu đang AVAILABLE
                 if table and table.status == "AVAILABLE":
                     table.status = "OCCUPIED"
                     table.save(update_fields=["status"])
@@ -207,19 +205,19 @@ class OrderService(BaseService):
             return {
                 "success": False,
                 "message": str(e),
-                "data": None
+                "data": None,
             }
         except Exception as e:
             return {
                 "success": False,
                 "message": f"Lỗi hệ thống: {str(e)}",
-                "data": None
+                "data": None,
             }
 
         return {
             "success": True,
             "message": "Tạo đơn hàng thành công",
-            "data": self._serializer_class(order).data
+            "data": self._serializer_class(order).data,
         }
         # customers = Customer._repository.create({
         #    data.customer_name = customer_name
@@ -297,33 +295,91 @@ class OrderService(BaseService):
 
     def update_payment_status(self, id, payment_status):
         order = self._repository.get_by_id(id)
-        print("payment_status",payment_status)
-        print("order",order)
         if not order:
             return {
                 "success": False,
                 "message": "Không tìm thấy đơn hàng",
-                "data": None
+                "data": None,
             }
 
+        # Chuẩn hóa giá trị status nhận vào (hỗ trợ cả dict lẫn chuỗi)
+        new_status = payment_status.get("payment_status") if isinstance(payment_status, dict) else payment_status
         valid_payment_status = {"UNPAID", "PAID"}
-        print("valid_payment_status",valid_payment_status)
-
-        if payment_status["payment_status"] not in valid_payment_status:
+        print("+++++++++++++new_status",new_status)
+        if new_status not in valid_payment_status:
             return {
                 "success": False,
                 "message": "Trạng thái thanh toán không hợp lệ",
-                "data": None
+                "data": None,
             }
 
-        order.payment_status = payment_status["payment_status"]
-        print("order.payment_status",order.payment_status)
 
-        order.save()
+        # Nếu trạng thái không đổi (ví dụ đã PAID từ trước), bỏ qua để không trừ kho lặp lại
+        if order.payment_status == new_status:
+            return {
+                "success": True,
+                "message": f"Đơn hàng vốn đã ở trạng thái {new_status}",
+                "data": self._serializer_class(order).data,
+            }
+
+        try:
+            with transaction.atomic():
+                # Thực hiện trừ kho khi đơn chuyển sang PAID
+                if new_status == "PAID":
+                    items_to_deduct = [
+                        {
+                            "product_id": detail.product_id,
+                            "sku": getattr(detail.product, "sku", None),
+                            "quantity": detail.quantity,
+                        }
+                        for detail in order.orderdetail_set.select_related("order_details").all()
+                    ]
+
+                    # Gọi trừ kho từ StockService
+                    self._stock_service.deduct_stock_for_order(
+                        order_items=items_to_deduct,
+                        order_code=order.order_code,
+                    )
+
+                order.payment_status = new_status
+                print("+++++++++++++order.payment_status",order.payment_status)
+
+                order.save(update_fields=["payment_status"])
+
+        except ValueError as e:
+            # Bắt lỗi khi không đủ tồn kho hoặc không tìm thấy sản phẩm trong kho
+            return {
+                "success": False,
+                "message": f"Không thể thanh toán do lỗi kho: {str(e)}",
+                "data": None,
+            }
+        except Exception as e:
+            return {
+                "success": False,
+                "message": f"Lỗi cập nhật thanh toán: {str(e)}",
+                "data": None,
+            }
+
+        # Bắn thông báo realtime qua WebSocket nếu có
+        try:
+            channel_layer = get_channel_layer()
+            async_to_sync(channel_layer.group_send)(
+                f"order_{order.id}",
+                {
+                    "type": "order_status",
+                    "data": {
+                        "id": order.id,
+                        "status": order.status,
+                        "payment_status": order.payment_status,
+                    },
+                },
+            )
+        except Exception:
+            pass
 
         return {
             "success": True,
-            "message": "Cập nhật trạng thái thanh toán thành công",
-            "data": self._serializer_class(order).data
+            "message": "Cập nhật trạng thái thanh toán và khấu trừ kho thành công",
+            "data": self._serializer_class(order).data,
         }
     
