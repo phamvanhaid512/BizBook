@@ -238,15 +238,15 @@ export default function Menu() {
 
           <div className="payment-methods-grid">
             {/* Lựa chọn 1: Tiền mặt */}
-            <button 
+            <button
               className={`payment-method-btn ${paymentModal.method === "CASH" ? "active" : ""}`}
               onClick={() => setPaymentModal({ ...paymentModal, method: "CASH" })}
             >
               <Banknote size={20} className="text-green" /> Tiền mặt
             </button>
-            
+
             {/* Lựa chọn 2: Chuyển khoản */}
-            <button 
+            <button
               className={`payment-method-btn ${paymentModal.method === "TRANSFER" ? "active" : ""}`}
               onClick={() => setPaymentModal({ ...paymentModal, method: "TRANSFER" })}
             >
@@ -255,7 +255,7 @@ export default function Menu() {
           </div>
 
           {/* Gắn sự kiện gọi hàm handleQuickService truyền đúng method đang chọn */}
-          <button 
+          <button
             className="btn-submit-payment"
             onClick={() => handleQuickService("CALL_PAYMENT", paymentModal.method)}
           >
@@ -372,7 +372,17 @@ export default function Menu() {
             {suggestedCombos.map((item) => (
               <div className="cross-sell-card" key={item.id}>
                 <span className="popular-badge"><Flame size={11} /> Bán chạy</span>
-                <div className="combo-avatar">{getProductName(item).charAt(0)}</div>
+                <div className="combo-avatar">
+                  {item.image_avatar ? (
+                    <img
+                      src={item.image_avatar}
+                      alt={getProductName(item)}
+                      style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: "inherit" }}
+                    />
+                  ) : (
+                    getProductName(item).charAt(0)
+                  )}
+                </div>
                 <div className="combo-info">
                   <h4>{getProductName(item)}</h4>
                   <span className="combo-price">{Number(item.price || 0).toLocaleString("vi-VN")}đ</span>
@@ -401,7 +411,13 @@ export default function Menu() {
                         const inCartItem = cart.find((c) => c.id === product.id);
                         return (
                           <div className="product-row" key={product.id}>
-                            <div className="product-avatar">{getProductName(product).charAt(0)}</div>
+                            <div className="product-avatar" style={{ overflow: "hidden" }}>
+                              <img
+                                src={product.image_avatar}
+                                alt={product.product_name}
+                                style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                              />
+                            </div>
                             <div className="product-info">
                               <h4>{getProductName(product).toUpperCase()}</h4>
                               <b className="product-price">{Number(product.price || 0).toLocaleString("vi-VN")}đ</b>

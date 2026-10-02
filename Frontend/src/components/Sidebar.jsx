@@ -15,7 +15,7 @@ function Sidebar() {
     { path: "/expenses", label: "Chi phí", icon: "💸" },
     { path: "/business-tables", label: "Bàn / QR", icon: "📱" },
     { path: "/mining", label: "Data Mining", icon: "⛏️" },
-    // { path: "/ai-agent", label: "AI Agent", icon: "🤖" },
+    { path: "/inventory/", label: "Inventory", icon: "🤖" },
   ];
 
   const handleLogout = () => {

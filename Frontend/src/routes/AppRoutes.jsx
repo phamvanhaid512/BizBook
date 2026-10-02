@@ -16,7 +16,7 @@ import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import AdminLayout from "../layouts/AdminLayout";
 import ProtectedRoute from "../components/ProtectedRoute";
-
+import InventoryPage from "../pages/Inventory"
 function PrivatePage({ children }) {
   return (
     <ProtectedRoute>
@@ -40,7 +40,7 @@ function AppRoutes() {
         <Route path="/expenses" element={<PrivatePage><Expenses /></PrivatePage>} />
         <Route path="/business-tables" element={<PrivatePage><BusinessTables /></PrivatePage>} />
         <Route path="/mining" element={<PrivatePage><DataMiningPage /></PrivatePage>} />
-        {/* <Route path="/ai-agent" element={<PrivatePage><AIChatPage /></PrivatePage>} /> */}
+        <Route path="/inventory" element={<PrivatePage><InventoryPage /></PrivatePage>} />
 
         <Route path="/menu/table/:tableId" element={<Menu />} />
         <Route path="/admin/print-qr" element={<PrintQR />} />

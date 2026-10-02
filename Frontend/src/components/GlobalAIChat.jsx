@@ -217,7 +217,7 @@ export default function GlobalAIChat() {
         session_id: sessionId,
         message: content,
       };
-
+      
       const res = await aiAgentApi.chat(payload);
       const apiData = res.data?.data || {};
 

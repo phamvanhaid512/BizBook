@@ -28,6 +28,7 @@ function Products() {
 
   const [formData, setFormData] = useState({
     product_name: "",
+    image_avatar: "", // Thêm field image_avatar
     category: "",
     price: "",
     stock_quantity: "",
@@ -50,6 +51,7 @@ function Products() {
       });
 
       setProducts(res.data.data.items || []);
+      console.log("res.data.data.items product",res.data.data.items )
       setPagination(res.data.data.pagination || {});
     } catch (error) {
       toast.error("Không thể tải danh sách sản phẩm");
@@ -76,6 +78,7 @@ function Products() {
     setEditingProduct(null);
     setFormData({
       product_name: "",
+      image_avatar: "", // Đặt lại rỗng khi thêm mới
       category: "",
       price: "",
       stock_quantity: "",
@@ -90,6 +93,7 @@ function Products() {
     setEditingProduct(product);
     setFormData({
       product_name: product.product_name || "",
+      image_avatar: product.image_avatar || "", // Cập nhật hình ảnh nếu có
       category: product.category || "",
       price: product.price || "",
       stock_quantity: product.stock_quantity || "",
@@ -208,6 +212,20 @@ function Products() {
     return Number(value || 0).toLocaleString("vi-VN") + "đ";
   };
 
+  // Render hiển thị ảnh đại diện hoặc chữ cái đầu tiên nếu không có ảnh
+  const renderAvatar = (product) => {
+    if (product.image_avatar) {
+      return (
+        <img
+          src={product.image_avatar}
+          alt={product.product_name}
+          style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: "inherit" }}
+        />
+      );
+    }
+    return product.product_name?.charAt(0);
+  };
+
   return (
     <div className="product-page">
       <div className="product-header">
@@ -269,11 +287,17 @@ function Products() {
 
             <tbody>
               {products.map((product) => (
+                
                 <tr key={product.id}>
+                  
                   <td>
                     <div className="product-info-cell">
-                      <div className="product-avatar">
-                        {product.product_name?.charAt(0)}
+                      <div className="product-avatar" style={{ overflow: "hidden" }}>
+                        <img
+                          src={product.image_avatar}
+                          alt={product.product_name}
+                          style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                        />
                       </div>
                       <div>
                         <strong>{product.product_name}</strong>
@@ -325,8 +349,12 @@ function Products() {
             <div key={product.id} className="mobile-product-card">
               <div className="mobile-card-top">
                 <div className="product-info-cell">
-                  <div className="product-avatar">
-                    {product.product_name?.charAt(0)}
+                  <div className="product-avatar" style={{ overflow: "hidden" }}>
+                    <img
+                      src={product.image_avatar}
+                      alt={product.product_name}
+                      style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                    />
                   </div>
                   <div>
                     <strong>{product.product_name}</strong>
@@ -433,6 +461,17 @@ function Products() {
                   value={formData.product_name}
                   onChange={handleChange}
                   placeholder="Ví dụ: Trà đào cam sả"
+                />
+              </div>
+
+              {/* Thêm Input nhập đường dẫn ảnh */}
+              <div className="form-group">
+                <label>Đường dẫn hình ảnh (URL)</label>
+                <input
+                  name="image_avatar"
+                  value={formData.image_avatar}
+                  onChange={handleChange}
+                  placeholder="Ví dụ: https://link-anh-cua-ban.com/hinh.jpg"
                 />
               </div>
 
