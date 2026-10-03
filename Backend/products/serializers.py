@@ -17,5 +17,6 @@ class ProductSerializer(serializers.ModelSerializer):
             "unit",
             "description",
             "status",
+            "image_avatar",
             "created_at"
         ]

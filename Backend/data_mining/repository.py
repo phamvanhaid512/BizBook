@@ -22,13 +22,17 @@ class SalesDataRepository:
                 status="COMPLETED",
             )
             .order_by("created_at")
-    )
-
-        print(
-            "🚀 ~ SalesDataRepository "
-            "~ get_order_completed ~ queryset:",
-            queryset,
         )
+        queryset1 = (
+            Order.objects
+            .filter(
+                created_at__date__gte=start_date,
+                created_at__date__lte=end_date,
+                status="COMPLETED",
+            )
+            .order_by("created_at").count()
+        )
+        print("so do hoan thanh",queryset1)
 
         return queryset
     def get_order_transaction(

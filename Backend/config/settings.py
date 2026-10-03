@@ -66,7 +66,9 @@ INSTALLED_APPS = [
     # 'mining',
     'ai_agent',
     'documents',
-    'table_chat'
+    'inventory.apps.InventoryConfig',
+    'table_chat',
+    
 ]
 CHANNEL_LAYERS = {
     "default": {

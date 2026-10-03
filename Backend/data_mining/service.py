@@ -119,8 +119,6 @@ class DataMiningService:
                     end_date = validated_data.get("end_date")
                 )
             )
-            print("transactions",transactions)
-
             result = (
                 self.apriori_analyzer
                 .analyze(
@@ -314,10 +312,7 @@ class DataMiningService:
                     )
                 )
 
-            print(
-                "🚀 Forecasting mode:",
-                mode,
-            )
+
 
             print(
                 "🚀 Forecasting period:",

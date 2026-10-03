@@ -1,0 +1,727 @@
+/* ===================================================
+   1. RESET & BIẾN TOÀN CỤC
+   =================================================== */
+:root {
+  --primary-color: #2563eb;
+  --primary-hover: #1d4ed8;
+  --bg-color: #f8fafc;
+  --surface-color: #ffffff;
+  --border-color: #e2e8f0;
+  --text-main: #0f172a;
+  --text-muted: #64748b;
+  --danger-color: #ef4444;
+  --danger-bg: #fef2f2;
+  --success-color: #10b981;
+  --success-bg: #ecfdf5;
+  --radius-lg: 12px;
+  --radius-md: 8px;
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+}
+
+.biz-inv-container {
+  width: 100%;
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 24px 20px;
+  background-color: var(--bg-color);
+  min-height: 100vh;
+  box-sizing: border-box;
+}
+
+/* ===================================================
+   2. TOP BANNER
+   =================================================== */
+.biz-inv-banner {
+  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+  border-radius: var(--radius-lg);
+  padding: 28px 32px;
+  color: #ffffff;
+  margin-bottom: 24px;
+  box-shadow: var(--shadow-md);
+  position: relative;
+  overflow: hidden;
+}
+
+.biz-inv-badge {
+  display: inline-block;
+  background: rgba(59, 130, 246, 0.2);
+  color: #60a5fa;
+  border: 1px solid rgba(96, 165, 250, 0.3);
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  margin-bottom: 12px;
+}
+
+.biz-inv-banner-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.biz-inv-banner-text h1 {
+  font-size: 24px;
+  font-weight: 700;
+  margin: 0 0 6px 0;
+  color: #ffffff;
+}
+
+.biz-inv-banner-text p {
+  margin: 0;
+  color: #94a3b8;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.biz-inv-banner-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+/* ===================================================
+   3. NÚT BẤM (BUTTONS)
+   =================================================== */
+.biz-inv-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 18px;
+  border-radius: var(--radius-md);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+  white-space: nowrap;
+}
+
+.biz-inv-btn-primary {
+  background-color: var(--primary-color);
+  color: #ffffff;
+}
+
+.biz-inv-btn-primary:hover:not(:disabled) {
+  background-color: var(--primary-hover);
+}
+
+.biz-inv-btn-outline {
+  background: transparent;
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+}
+
+.biz-inv-btn-outline:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.5);
+}
+
+.biz-inv-btn-outline.dark-text {
+  color: var(--text-main);
+  border-color: var(--border-color);
+}
+
+.biz-inv-btn-outline.dark-text:hover:not(:disabled) {
+  background: #f1f5f9;
+}
+
+.biz-inv-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ===================================================
+   4. KPI CARDS
+   =================================================== */
+.biz-inv-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.biz-inv-kpi-card {
+  background: var(--surface-color);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  box-shadow: var(--shadow-sm);
+}
+
+.biz-inv-kpi-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  flex-shrink: 0;
+}
+
+.biz-inv-kpi-icon.blue {
+  background: #eff6ff;
+}
+
+.biz-inv-kpi-icon.red {
+  background: #fef2f2;
+}
+
+.biz-inv-kpi-icon.purple {
+  background: #f5f3ff;
+}
+
+.biz-inv-kpi-info .label {
+  display: block;
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+}
+
+.biz-inv-kpi-info h3 {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text-main);
+  margin: 0;
+}
+
+.biz-inv-kpi-info small {
+  font-size: 13px;
+  font-weight: normal;
+  color: var(--text-muted);
+}
+
+.danger-text {
+  color: var(--danger-color) !important;
+}
+
+/* ===================================================
+   5. DANH SÁCH & BẢNG TỒN KHO
+   =================================================== */
+.biz-inv-card {
+  background: var(--surface-color);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+}
+
+.biz-inv-card-header {
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.biz-inv-card-header h2 {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-main);
+  margin: 0 0 4px 0;
+}
+
+.biz-inv-card-header .subtitle {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin: 0;
+}
+
+.biz-inv-filters {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.biz-inv-input,
+.biz-inv-select {
+  height: 40px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color);
+  padding: 0 14px;
+  font-size: 14px;
+  outline: none;
+  background-color: #ffffff;
+  color: var(--text-main);
+  transition: border-color 0.2s;
+}
+
+.biz-inv-input:focus,
+.biz-inv-select:focus {
+  border-color: var(--primary-color);
+}
+
+.biz-inv-input {
+  min-width: 240px;
+}
+
+.biz-inv-table-wrapper {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.biz-inv-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.biz-inv-table th {
+  background-color: #f8fafc;
+  padding: 12px 18px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-bottom: 1px solid var(--border-color);
+  white-space: nowrap;
+}
+
+.biz-inv-table td {
+  padding: 14px 18px;
+  font-size: 14px;
+  color: var(--text-main);
+  border-bottom: 1px solid var(--border-color);
+  vertical-align: middle;
+}
+
+.biz-inv-table tr:last-child td {
+  border-bottom: none;
+}
+
+.biz-inv-table tr:hover {
+  background-color: #fcfdfe;
+}
+
+.sku-badge {
+  display: inline-block;
+  background: #f1f5f9;
+  color: #475569;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 4px;
+}
+
+.product-title {
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.qty-val {
+  font-weight: 700;
+}
+
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.status-pill.success {
+  background: var(--success-bg);
+  color: var(--success-color);
+}
+
+.status-pill.danger {
+  background: var(--danger-bg);
+  color: var(--danger-color);
+}
+
+.biz-inv-action-btn {
+  padding: 6px 12px;
+  border: 1px solid var(--border-color);
+  background: #ffffff;
+  color: #334155;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  margin-left: 6px;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.biz-inv-action-btn:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+}
+
+.biz-inv-action-btn.highlight {
+  background: #fef2f2;
+  border-color: #fecaca;
+  color: #dc2626;
+}
+
+.biz-inv-action-btn.highlight:hover {
+  background: #fee2e2;
+}
+
+.text-right {
+  text-align: right;
+}
+
+/* ===================================================
+   6. PHÂN TRANG (PAGINATION)
+   =================================================== */
+.biz-inv-pagination {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  border-top: 1px solid var(--border-color);
+  background-color: var(--surface-color);
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.biz-inv-pagination-info {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.biz-inv-pagination-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.biz-inv-per-page {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.biz-inv-select-small {
+  padding: 4px 8px;
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+  background: #f8fafc;
+  font-size: 13px;
+  outline: none;
+  cursor: pointer;
+}
+
+.biz-inv-page-btns {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.biz-inv-page-btn {
+  min-width: 32px;
+  height: 32px;
+  padding: 0 8px;
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+  background: #ffffff;
+  color: var(--text-main);
+  font-size: 13px;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.biz-inv-page-btn:hover:not(:disabled) {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+}
+
+.biz-inv-page-btn.active {
+  background: var(--primary-color);
+  border-color: var(--primary-color);
+  color: #ffffff;
+}
+
+.biz-inv-page-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.biz-inv-page-dots {
+  padding: 0 4px;
+  color: var(--text-muted);
+}
+
+/* ===================================================
+   7. MODAL POPUP
+   =================================================== */
+.biz-inv-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(15, 23, 42, 0.65);
+  backdrop-filter: blur(3px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  padding: 16px;
+  box-sizing: border-box;
+}
+
+.biz-inv-modal-content {
+  background: var(--surface-color);
+  width: 100%;
+  max-width: 520px;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  animation: modalFadeIn 0.25s ease-out;
+  overflow: hidden;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+}
+
+@keyframes modalFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.biz-inv-modal-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.biz-inv-modal-header h3 {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.biz-inv-close-btn {
+  background: none;
+  border: none;
+  font-size: 18px;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 4px;
+}
+
+.biz-inv-close-btn:hover {
+  color: var(--text-main);
+}
+
+.biz-inv-modal-body {
+  padding: 20px;
+  overflow-y: auto;
+  box-sizing: border-box;
+}
+
+.biz-inv-form-group {
+  margin-bottom: 16px;
+}
+
+.biz-inv-form-group label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-main);
+  margin-bottom: 6px;
+}
+
+.biz-inv-form-control {
+  width: 100%;
+  height: 42px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color);
+  padding: 0 12px;
+  font-size: 14px;
+  color: var(--text-main);
+  background: #ffffff;
+  box-sizing: border-box;
+  outline: none;
+}
+
+.biz-inv-form-control:focus {
+  border-color: var(--primary-color);
+}
+
+.biz-inv-form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.biz-inv-modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 24px;
+}
+
+/* ===================================================
+   8. RESPONSIVE MEDIA QUERIES (TABLET & MOBILE)
+   =================================================== */
+
+/* Tablet & Mobile cỡ trung (dưới 1024px) */
+@media screen and (max-width: 1024px) {
+  .biz-inv-kpi-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* Mobile Devices (dưới 768px) */
+@media screen and (max-width: 768px) {
+  .biz-inv-container {
+    padding: 12px 8px;
+  }
+
+  /* Banner Mobile */
+  .biz-inv-banner {
+    padding: 20px 16px;
+    margin-bottom: 16px;
+    border-radius: var(--radius-md);
+  }
+
+  .biz-inv-banner-content {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+
+  .biz-inv-banner-actions {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .biz-inv-banner-actions .biz-inv-btn {
+    width: 100%;
+    height: 44px;
+  }
+
+  /* KPI Grid */
+  .biz-inv-kpi-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+
+  .biz-inv-kpi-card {
+    padding: 14px 16px;
+    border-radius: var(--radius-md);
+  }
+
+  /* Filter Mobile */
+  .biz-inv-card-header {
+    padding: 16px;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .biz-inv-filters {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .biz-inv-input,
+  .biz-inv-select {
+    width: 100%;
+    min-width: 100%;
+    box-sizing: border-box;
+  }
+
+  /* Form Modal Mobile */
+  .biz-inv-modal-overlay {
+    padding: 0;
+    align-items: flex-end; /* Trượt từ dưới lên phong cách mobile sheet */
+  }
+
+  .biz-inv-modal-content {
+    max-width: 100%;
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+    max-height: 85vh;
+  }
+
+  .biz-inv-form-row {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .biz-inv-modal-footer {
+    flex-direction: column-reverse;
+    gap: 8px;
+  }
+
+  .biz-inv-modal-footer .biz-inv-btn {
+    width: 100%;
+    height: 44px;
+  }
+
+  /* Pagination Mobile */
+  .biz-inv-pagination {
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 12px;
+  }
+
+  .biz-inv-pagination-actions {
+    width: 100%;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .biz-inv-page-btns {
+    width: 100%;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  .biz-inv-action-btn {
+    margin-left: 0;
+    margin-bottom: 4px;
+    width: 100%;
+  }
+}
+
+/* Mobile nhỏ (dưới 480px) */
+@media screen and (max-width: 480px) {
+  .biz-inv-table th,
+  .biz-inv-table td {
+    padding: 10px 12px;
+    font-size: 13px;
+  }
+
+  .biz-inv-banner-text h1 {
+    font-size: 20px;
+  }
+
+  .biz-inv-kpi-info h3 {
+    font-size: 19px;
+  }
+}

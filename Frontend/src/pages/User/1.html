@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>Hóa Đơn Siêu Nét - Tối Ưu OCR</title>
+    <style>
+        body { font-family: Arial, Helvetica, sans-serif; background: #ffffff; color: #000000; padding: 40px; display: flex; justify-content: center; margin: 0; }
+        .receipt-box { width: 420px; padding: 30px; border: 2px solid #000; background: #fff; box-shadow: none; }
+        .text-center { text-align: center; }
+        .text-right { text-align: right; }
+        .text-left { text-align: left; }
+        .bold { font-weight: bold; }
+        h2 { margin: 0 0 5px 0; font-size: 26px; text-transform: uppercase; letter-spacing: 1px; }
+        p { margin: 6px 0; font-size: 16px; }
+        .divider { border-bottom: 2px dashed #000; margin: 18px 0; }
+        table { width: 100%; border-collapse: collapse; margin-bottom: 15px; }
+        th, td { padding: 10px 0; font-size: 16px; }
+        th { border-bottom: 1px solid #000; text-transform: uppercase; font-size: 14px; }
+        .total-section { font-size: 24px; font-weight: bold; padding-top: 10px; display: flex; justify-content: space-between; align-items: center; }
+    </style>
+</head>
+<body>
+    <div class="receipt-box">
+        <div class="text-center">
+            <h2>CỬA HÀNG BIZBOOK</h2>
+            <p>Số 1, Võ Văn Ngân, TP. Thủ Đức</p>
+            <!-- Định dạng SĐT có dấu gạch ngang để Regex không bắt nhầm thành số tiền -->
+            <p>SĐT: 028-3812-3456</p>
+            <div class="divider"></div>
+            <p class="bold" style="font-size: 20px;">HÓA ĐƠN BÁN LẺ</p>
+            <p>Ngày: 28/09/2026 - Giờ: 10:15</p>
+            <p>Mã HĐ: INV-20260928</p>
+        </div>
+        
+        <div class="divider"></div>
+        
+        <table>
+            <thead>
+                <tr>
+                    <th class="text-left">Sản phẩm</th>
+                    <th class="text-center">SL</th>
+                    <th class="text-right">Đơn giá</th>
+                    <th class="text-right">Thành tiền</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Mực in Brother</td>
+                    <td class="text-center">2</td>
+                    <td class="text-right">450.000</td>
+                    <td class="text-right">900.000</td>
+                </tr>
+                <tr>
+                    <td>Giấy A4 Double A</td>
+                    <td class="text-center">5</td>
+                    <td class="text-right">75.000</td>
+                    <td class="text-right">375.000</td>
+                </tr>
+                <tr>
+                    <td>Bút bi Thiên Long</td>
+                    <td class="text-center">10</td>
+                    <td class="text-right">5.000</td>
+                    <td class="text-right">50.000</td>
+                </tr>
+            </tbody>
+        </table>
+        
+        <div class="divider"></div>
+        
+        <div style="display: flex; justify-content: space-between; font-size: 16px; margin-bottom: 8px;">
+            <span>Tổng tiền hàng:</span>
+            <span>1.325.000</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; font-size: 16px; margin-bottom: 8px;">
+            <span>Chiết khấu:</span>
+            <span>0</span>
+        </div>
+        
+        <div class="divider"></div>
+        
+        <div class="total-section">
+            <span>TỔNG CỘNG:</span>
+            <span>1.325.000 VNĐ</span>
+        </div>
+        
+        <div class="divider"></div>
+        
+        <div class="text-center">
+            <p>Cảm ơn quý khách!</p>
+            <p>Hẹn gặp lại</p>
+        </div>
+    </div>
+</body>
+</html>

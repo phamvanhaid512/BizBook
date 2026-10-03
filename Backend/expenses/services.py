@@ -169,7 +169,7 @@ class ExpenseService(BaseService):
                 "data": None,
             }
 
-        self.expense_repo.delete(expense)
+        self.expense_repo.delete(expense_id)
         return {"success": True, "message": "Xóa khoản chi thành công.", "data": None}
 
     def get_summary(self, start_date, end_date):
