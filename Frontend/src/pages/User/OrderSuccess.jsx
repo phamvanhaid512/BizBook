@@ -41,7 +41,7 @@ function OrderSuccess() {
       }
     } catch (err) {
       console.warn("Không thể tải thông tin chi tiết bàn:", err);
-      hasFetchedTable.current = false; 
+      hasFetchedTable.current = false;
     }
   }, []);
 
@@ -110,9 +110,27 @@ function OrderSuccess() {
     };
     fetchChatHistory();
 
-    // 2. Mở kết nối
-    const backendUrl = import.meta.env.VITE_WS_URL || "http://localhost:8000";
-    const wsUrl = `${backendUrl.replace(/^http/, "ws")}/ws/chat/table/${rawTableId}/`;
+    // 1. Tự nhận diện giao thức: wss nếu là https, ngược lại là ws
+    const isHttps = window.location.protocol === "https:";
+    const defaultProtocol = isHttps ? "wss:" : "ws:";
+
+    // 2. Xác định host:
+    // - Ở Local dev (localhost/127.0.0.1): mặc định về port 8000 của Django
+    // - Ở Production VPS: tự động lấy domain/IP hiện tại (window.location.host) qua Nginx
+    const isLocalhost = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
+    const fallbackHost = isLocalhost ? "localhost:8000" : window.location.host;
+
+    let rawWsUrl = import.meta.env.VITE_WS_URL?.trim() || fallbackHost;
+
+    // 3. Chuẩn hóa: lọc bỏ protocol thừa và dấu / ở cuối
+    const cleanHost = rawWsUrl
+      .replace(/^(https?|wss?):\/\//, "")
+      .replace(/\/+$/, "");
+
+    // 4. Ghép URL socket
+    const wsUrl = `${defaultProtocol}//${cleanHost}/ws/chat/table/${rawTableId}/`;
+
+    // 5. Mở kết nối
     socketRef.current = new WebSocket(wsUrl);
 
     socketRef.current.onmessage = (event) => {
@@ -178,7 +196,7 @@ function OrderSuccess() {
     socketRef.current.send(JSON.stringify({
       message: chatInput.trim(),
       sender_type: "CUSTOMER",
-      customer_name: customerName 
+      customer_name: customerName
     }));
     setChatInput("");
   };

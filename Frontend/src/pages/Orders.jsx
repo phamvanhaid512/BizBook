@@ -207,11 +207,30 @@ function Orders() {
   useEffect(() => {
     if (!selectedOrder?.id) return;
 
-    const backendUrl =
-      import.meta.env.VITE_WS_URL || "http://localhost:8000";
-    const wsUrl = `${backendUrl.replace(/^http/, "ws")}/ws/orders/${selectedOrder.id}/`;
+// 1. Tự động nhận diện giao thức: wss nếu là https, ws nếu là http
+const isHttps = window.location.protocol === "https:";
+const defaultProtocol = isHttps ? "wss:" : "ws:";
 
-    const socket = new WebSocket(wsUrl);
+// 2. Xác định host dự phòng:
+// - Local dev (localhost/127.0.0.1): fallback về localhost:8000
+// - Production VPS / Domain: tự động lấy window.location.host qua Nginx
+const isLocalhost =
+  window.location.hostname === "localhost" ||
+  window.location.hostname === "127.0.0.1";
+const fallbackHost = isLocalhost ? "localhost:8000" : window.location.host;
+
+let rawWsUrl = import.meta.env.VITE_WS_URL?.trim() || fallbackHost;
+
+// 3. Chuẩn hóa: loại bỏ giao thức cũ và dấu gạch chéo cuối nếu có
+const cleanHost = rawWsUrl
+  .replace(/^(https?|wss?):\/\//, "")
+  .replace(/\/+$/, "");
+
+// 4. Tạo đường dẫn wsUrl chuẩn
+const wsUrl = `${defaultProtocol}//${cleanHost}/ws/orders/${selectedOrder.id}/`;
+
+// 5. Khởi tạo WebSocket
+const socket = new WebSocket(wsUrl);
 
     socket.onmessage = (event) => {
       try {
