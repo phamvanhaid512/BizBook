@@ -84,7 +84,7 @@ export default function Menu() {
     fetchChatHistory();
 
     // B. Mở kết nối WebSocket
-    const backendUrl = import.meta.env.VITE_BACKEND_URL || "http://localhost:8000";
+    const backendUrl = import.meta.env.VITE_WS_URL || "http://localhost:8000";
     const wsUrl = `${backendUrl.replace(/^http/, "ws")}/ws/chat/table/${tableId}/`;
     console.log("wsUrl", wsUrl)
     socketRef.current = new WebSocket(wsUrl);

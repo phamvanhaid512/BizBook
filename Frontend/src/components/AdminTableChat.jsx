@@ -22,7 +22,7 @@ export default function AdminTableChat() {
   // 1. WEBSOCKET NHẬN TIN NHẮN TỪ TẤT CẢ CÁC BÀN
   // ========================================================
   useEffect(() => {
-    const backendUrl = import.meta.env.VITE_BACKEND_URL || "http://localhost:8000";
+    const backendUrl = import.meta.env.VITE_WS_URL || "http://localhost:8000";
     const wsUrl = `${backendUrl.replace(/^http/, "ws")}/ws/chat/staff/`;
     
     socketRef.current = new WebSocket(wsUrl);

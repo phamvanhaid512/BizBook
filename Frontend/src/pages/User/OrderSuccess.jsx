@@ -111,7 +111,7 @@ function OrderSuccess() {
     fetchChatHistory();
 
     // 2. Mở kết nối
-    const backendUrl = import.meta.env.VITE_BACKEND_URL || "http://localhost:8000";
+    const backendUrl = import.meta.env.VITE_WS_URL || "http://localhost:8000";
     const wsUrl = `${backendUrl.replace(/^http/, "ws")}/ws/chat/table/${rawTableId}/`;
     socketRef.current = new WebSocket(wsUrl);
 
