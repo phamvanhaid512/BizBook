@@ -22,9 +22,27 @@ export default function AdminTableChat() {
   // 1. WEBSOCKET NHẬN TIN NHẮN TỪ TẤT CẢ CÁC BÀN
   // ========================================================
   useEffect(() => {
-    const backendUrl = import.meta.env.VITE_BACKEND_URL || "http://localhost:8000";
-    const wsUrl = `${backendUrl.replace(/^http/, "ws")}/ws/chat/staff/`;
-    
+    // 1. Tự động nhận diện protocol: wss nếu web đang chạy https, ngược lại là ws
+    const isHttps = window.location.protocol === "https:";
+    const defaultProtocol = isHttps ? "wss:" : "ws:";
+
+    // 2. Xác định host dự phòng nếu không có biến môi trường:
+    // - Ở Local (localhost / 127.0.0.1): trỏ về đúng port 8000 của Django backend
+    // - Ở Production: trỏ về host hiện tại (qua Nginx reverse proxy)
+    const isLocalhost = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
+    const fallbackHost = isLocalhost ? "localhost:8000" : window.location.host;
+
+    let rawWsUrl = import.meta.env.VITE_WS_URL?.trim() || fallbackHost;
+
+    // 3. Chuẩn hóa: Gỡ bỏ protocol thừa (http, https, ws, wss) và dấu gạch chéo cuối nếu có
+    const cleanHost = rawWsUrl
+      .replace(/^(https?|wss?):\/\//, "")
+      .replace(/\/+$/, "");
+
+    // 4. Ghép URL socket hoàn chỉnh
+    const wsUrl = `${defaultProtocol}//${cleanHost}/ws/chat/staff/`;
+
+    // 5. Khởi tạo kết nối WebSocket
     socketRef.current = new WebSocket(wsUrl);
 
     socketRef.current.onmessage = (event) => {
@@ -71,7 +89,7 @@ export default function AdminTableChat() {
   // ========================================================
   const handleSelectTable = async (table) => {
     setSelectedTable(table);
-    
+
     // Đánh dấu đã đọc
     setActiveTables((prev) => prev.map((t) => (t.id === table.id ? { ...t, unread: 0 } : t)));
 
@@ -98,7 +116,7 @@ export default function AdminTableChat() {
       message: replyText.trim(),
       sender_type: "STAFF",
     }));
-    
+
     setReplyText("");
   };
 

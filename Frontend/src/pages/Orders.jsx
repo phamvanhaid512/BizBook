@@ -208,7 +208,7 @@ function Orders() {
     if (!selectedOrder?.id) return;
 
     const backendUrl =
-      import.meta.env.VITE_BACKEND_URL || "http://localhost:8000";
+      import.meta.env.VITE_WS_URL || "http://localhost:8000";
     const wsUrl = `${backendUrl.replace(/^http/, "ws")}/ws/orders/${selectedOrder.id}/`;
 
     const socket = new WebSocket(wsUrl);
