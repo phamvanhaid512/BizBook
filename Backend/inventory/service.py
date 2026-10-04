@@ -54,7 +54,10 @@ class StockService(BaseService):
             if sku:
                 stock = self._repository.get_by_sku_for_update(sku)
             elif product_id:
-                stock = self._repository.get_by_product_id_for_update(product_id)
+                # Truyền warehouse_code (nếu có) vào để xác định đúng kho cần trừ
+                stock = self._repository.get_by_product_id_for_update(
+                    product_id, warehouse_code=warehouse_code
+                )
             else:
                 stock = None
 
