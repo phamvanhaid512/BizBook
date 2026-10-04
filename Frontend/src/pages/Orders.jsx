@@ -207,30 +207,30 @@ function Orders() {
   useEffect(() => {
     if (!selectedOrder?.id) return;
 
-// 1. Tự động nhận diện giao thức: wss nếu là https, ws nếu là http
-const isHttps = window.location.protocol === "https:";
-const defaultProtocol = isHttps ? "wss:" : "ws:";
+    // 1. Tự động nhận diện giao thức: wss nếu là https, ws nếu là http
+    const isHttps = window.location.protocol === "https:";
+    const defaultProtocol = isHttps ? "wss:" : "ws:";
 
-// 2. Xác định host dự phòng:
-// - Local dev (localhost/127.0.0.1): fallback về localhost:8000
-// - Production VPS / Domain: tự động lấy window.location.host qua Nginx
-const isLocalhost =
-  window.location.hostname === "localhost" ||
-  window.location.hostname === "127.0.0.1";
-const fallbackHost = isLocalhost ? "localhost:8000" : window.location.host;
+    // 2. Xác định host dự phòng:
+    // - Local dev (localhost/127.0.0.1): fallback về localhost:8000
+    // - Production VPS / Domain: tự động lấy window.location.host qua Nginx
+    const isLocalhost =
+      window.location.hostname === "localhost" ||
+      window.location.hostname === "127.0.0.1";
+    const fallbackHost = isLocalhost ? "localhost:8000" : window.location.host;
 
-let rawWsUrl = import.meta.env.VITE_WS_URL?.trim() || fallbackHost;
+    let rawWsUrl = import.meta.env.VITE_WS_URL?.trim() || fallbackHost;
 
-// 3. Chuẩn hóa: loại bỏ giao thức cũ và dấu gạch chéo cuối nếu có
-const cleanHost = rawWsUrl
-  .replace(/^(https?|wss?):\/\//, "")
-  .replace(/\/+$/, "");
+    // 3. Chuẩn hóa: loại bỏ giao thức cũ và dấu gạch chéo cuối nếu có
+    const cleanHost = rawWsUrl
+      .replace(/^(https?|wss?):\/\//, "")
+      .replace(/\/+$/, "");
 
-// 4. Tạo đường dẫn wsUrl chuẩn
-const wsUrl = `${defaultProtocol}//${cleanHost}/ws/orders/${selectedOrder.id}/`;
+    // 4. Tạo đường dẫn wsUrl chuẩn
+    const wsUrl = `${defaultProtocol}//${cleanHost}/ws/orders/${selectedOrder.id}/`;
 
-// 5. Khởi tạo WebSocket
-const socket = new WebSocket(wsUrl);
+    // 5. Khởi tạo WebSocket
+    const socket = new WebSocket(wsUrl);
 
     socket.onmessage = (event) => {
       try {
@@ -297,12 +297,19 @@ const socket = new WebSocket(wsUrl);
     if (!selectedOrder) return;
 
     try {
-      await orderApi.updatePaymentStatus(selectedOrder.id, {
+      const response = await orderApi.updatePaymentStatus(selectedOrder.id, {
         payment_status: "PAID",
       });
 
+      // Kiểm tra nếu Backend trả HTTP 200 nhưng cờ success = false
+      if (response.data && response.data.success === false) {
+        toast.error(response.data.message || "Cập nhật thanh toán thất bại");
+        return;
+      }
+
       toast.success("Cập nhật thanh toán thành công");
 
+      // Cập nhật state danh sách và đơn hiện tại
       setOrders((prevOrders) =>
         prevOrders.map((order) =>
           order.id === selectedOrder.id
@@ -315,10 +322,14 @@ const socket = new WebSocket(wsUrl);
         prev ? { ...prev, payment_status: "PAID" } : prev
       );
     } catch (error) {
-      toast.error(error.response?.data?.message || "Cập nhật thanh toán thất bại");
+      // Bắt lỗi HTTP 4xx, 5xx từ server
+      const errorMsg =
+        error.response?.data?.message ||
+        error.response?.data?.detail ||
+        "Cập nhật thanh toán thất bại";
+      toast.error(errorMsg);
     }
   };
-
   const getStartItem = () => {
     if ((pagination.total_items || 0) === 0) return 0;
     return (currentPage - 1) * itemsPerPage + 1;
