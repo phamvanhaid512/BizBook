@@ -84,11 +84,30 @@ export default function Menu() {
     fetchChatHistory();
 
     // B. Mở kết nối WebSocket
-    const backendUrl = import.meta.env.VITE_WS_URL || "http://localhost:8000";
-    const wsUrl = `${backendUrl.replace(/^http/, "ws")}/ws/chat/table/${tableId}/`;
-    console.log("wsUrl", wsUrl)
-    socketRef.current = new WebSocket(wsUrl);
+    // B. Mở kết nối WebSocket
+    // 1. Tự động nhận diện giao thức: wss nếu là https, ngược lại là ws
+    const isHttps = window.location.protocol === "https:";
+    const defaultProtocol = isHttps ? "wss:" : "ws:";
 
+    // 2. Tự động nhận diện host:
+    // - Local dev: fallback về localhost:8000
+    // - Production VPS/Domain: tự động lấy window.location.host qua Nginx
+    const isLocalhost = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
+    const fallbackHost = isLocalhost ? "localhost:8000" : window.location.host;
+
+    let rawWsUrl = import.meta.env.VITE_WS_URL?.trim() || fallbackHost;
+
+    // 3. Chuẩn hóa bỏ protocol thừa và dấu / ở cuối
+    const cleanHost = rawWsUrl
+      .replace(/^(https?|wss?):\/\//, "")
+      .replace(/\/+$/, "");
+
+    // 4. Tạo wsUrl chuẩn
+    const wsUrl = `${defaultProtocol}//${cleanHost}/ws/chat/table/${tableId}/`;
+    console.log("wsUrl:", wsUrl);
+
+    // 5. Khởi tạo kết nối
+    socketRef.current = new WebSocket(wsUrl);
     socketRef.current.onmessage = (event) => {
       const data = JSON.parse(event.data);
       setMessages((prev) => {
