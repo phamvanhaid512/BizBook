@@ -28,6 +28,21 @@ class StockRepository(BaseRepository):
             if search:
                 queryset = queryset.filter(product_name__icontains=search) | queryset.filter(sku__icontains=search)
         return queryset
+    def get_by_product_id_for_update(self, product_id, warehouse_code=None):
+        """Lấy thông tin tồn kho của sản phẩm kèm select_for_update để chống Race
+
+        Condition.
+
+        Thay vì dùng self._model, dùng self.get_model() theo chuẩn
+        BaseRepository.
+        """
+        queryset = self.get_model().objects.select_for_update()
+
+        if warehouse_code:
+            queryset = queryset.filter(warehouse__code=warehouse_code)
+
+        # Sử dụng .filter(...).first() an toàn hơn .get(...) để tránh văng MultipleObjectsReturned
+        return queryset.filter(product_id=product_id).first()
 
     def get_by_id_for_update(self, id):
         """Khóa dòng tránh race condition khi bán hàng hoặc nhập xuất đồng thời."""

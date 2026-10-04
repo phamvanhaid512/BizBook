@@ -13,6 +13,9 @@ from .serializers import OrderSerializer, CreateOrderSerializer
 from django.db import transaction
 from django.utils import timezone
 import uuid
+from django.db import transaction
+from channels.layers import get_channel_layer
+from asgiref.sync import async_to_sync
 from decimal import Decimal
 from inventory.service import StockService
 class OrderService(BaseService):
@@ -294,18 +297,14 @@ class OrderService(BaseService):
         }
 
     def update_payment_status(self, id, payment_status):
-        order = self._repository.get_by_id(id)
-        if not order:
-            return {
-                "success": False,
-                "message": "Không tìm thấy đơn hàng",
-                "data": None,
-            }
-
-        # Chuẩn hóa giá trị status nhận vào (hỗ trợ cả dict lẫn chuỗi)
-        new_status = payment_status.get("payment_status") if isinstance(payment_status, dict) else payment_status
+        # 1. Chuẩn hóa giá trị status
+        new_status = (
+            payment_status.get("payment_status")
+            if isinstance(payment_status, dict)
+            else payment_status
+        )
         valid_payment_status = {"UNPAID", "PAID"}
-        print("+++++++++++++new_status",new_status)
+
         if new_status not in valid_payment_status:
             return {
                 "success": False,
@@ -313,41 +312,63 @@ class OrderService(BaseService):
                 "data": None,
             }
 
-
-        # Nếu trạng thái không đổi (ví dụ đã PAID từ trước), bỏ qua để không trừ kho lặp lại
-        if order.payment_status == new_status:
-            return {
-                "success": True,
-                "message": f"Đơn hàng vốn đã ở trạng thái {new_status}",
-                "data": self._serializer_class(order).data,
-            }
-
         try:
             with transaction.atomic():
+                # Khóa đơn hàng ngay từ đầu để tránh 2 webhook/request cùng đọc trạng thái UNPAID
+                # Lưu ý: nếu repository chưa có hàm get_by_id_for_update, hãy dùng Order.objects.select_for_update().get(id=id)
+                order = getattr(
+                    self._repository, "get_by_id_for_update", None
+                ) and self._repository.get_by_id_for_update(id)
+                if not order:
+                    order = self._repository.get_by_id(id)
+
+                if not order:
+                    return {
+                        "success": False,
+                        "message": "Không tìm thấy đơn hàng",
+                        "data": None,
+                    }
+
+                # Idempotency check: Nếu đơn đã PAID trước đó rồi thì bỏ qua, không trừ lại
+                if order.payment_status == new_status:
+                    return {
+                        "success": True,
+                        "message": f"Đơn hàng vốn đã ở trạng thái {new_status}",
+                        "data": self._serializer_class(order).data,
+                    }
+
                 # Thực hiện trừ kho khi đơn chuyển sang PAID
                 if new_status == "PAID":
+                    # Kiểm tra chính xác related_name giữa 'details' hoặc 'items' trong model Order của bạn
+                    details_manager = getattr(
+                        order, "details", None
+                    ) or getattr(order, "items", None)
+                    if not details_manager:
+                        raise ValueError(
+                            "Không tìm thấy danh sách chi tiết món/sản phẩm trong đơn hàng"
+                        )
+
                     items_to_deduct = [
                         {
                             "product_id": detail.product_id,
                             "sku": getattr(detail.product, "sku", None),
                             "quantity": detail.quantity,
                         }
-                        for detail in order.orderdetail_set.select_related("order_details").all()
+                        for detail in details_manager.select_related(
+                            "product"
+                        ).all()
                     ]
 
-                    # Gọi trừ kho từ StockService
+                    # Gọi StockService
                     self._stock_service.deduct_stock_for_order(
                         order_items=items_to_deduct,
-                        order_code=order.order_code,
+                        order_code=getattr(order, "order_code", str(order.id)),
                     )
 
                 order.payment_status = new_status
-                print("+++++++++++++order.payment_status",order.payment_status)
-
                 order.save(update_fields=["payment_status"])
 
         except ValueError as e:
-            # Bắt lỗi khi không đủ tồn kho hoặc không tìm thấy sản phẩm trong kho
             return {
                 "success": False,
                 "message": f"Không thể thanh toán do lỗi kho: {str(e)}",
@@ -360,7 +381,7 @@ class OrderService(BaseService):
                 "data": None,
             }
 
-        # Bắn thông báo realtime qua WebSocket nếu có
+        # Bắn thông báo Realtime (nằm ngoài block transaction để tránh nghẽn DB)
         try:
             channel_layer = get_channel_layer()
             async_to_sync(channel_layer.group_send)(
@@ -382,4 +403,3 @@ class OrderService(BaseService):
             "message": "Cập nhật trạng thái thanh toán và khấu trừ kho thành công",
             "data": self._serializer_class(order).data,
         }
-    
