@@ -52,6 +52,8 @@ export default function ExpensesPage() {
     expense_date: new Date().toISOString().split("T")[0],
     amount: "",
     supplier_name: "",
+    invoice_number: "",
+    payment_method: "TIỀN MẶT",
     description: "",
     status: "CONFIRMED",
     receipt_image: null,
@@ -64,6 +66,7 @@ export default function ExpensesPage() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [ocrWarning, setOcrWarning] = useState("");
+  const [ocrScore, setOcrScore] = useState(null);
 
   useEffect(() => {
     fetchCategories();
@@ -152,15 +155,18 @@ export default function ExpensesPage() {
     setSelectedFile(null);
     setPreviewUrl("");
     setOcrWarning("");
+    setOcrScore(null);
     if (fileInputRef.current) fileInputRef.current.value = "";
 
     if (expense) {
       setEditingId(expense.id);
       setFormData({
-        category_id: expense.category,
+        category_id: expense.category || "",
         expense_date: expense.expense_date,
         amount: expense.amount,
         supplier_name: expense.supplier_name || "",
+        invoice_number: expense.invoice_number || "",
+        payment_method: expense.payment_method || "TIỀN MẶT",
         description: expense.description || "",
         status: expense.status || "CONFIRMED",
         receipt_image: expense.receipt_image || null,
@@ -172,6 +178,8 @@ export default function ExpensesPage() {
         expense_date: new Date().toISOString().split("T")[0],
         amount: "",
         supplier_name: "",
+        invoice_number: "",
+        payment_method: "TIỀN MẶT",
         description: "",
         status: "CONFIRMED",
         receipt_image: null,
@@ -193,6 +201,7 @@ export default function ExpensesPage() {
     setSelectedFile(file);
     setPreviewUrl(URL.createObjectURL(file));
     setOcrWarning("");
+    setOcrScore(null);
     setIsAnalyzing(true);
 
     try {
@@ -203,24 +212,30 @@ export default function ExpensesPage() {
       const data = response.data?.data;
       const parsed = data?.parsed_data || {};
 
+      // Cập nhật giá trị vào form từ parsed_data
       setFormData((prev) => ({
         ...prev,
         expense_date: parsed.expense_date || prev.expense_date,
-        amount: parsed.amount > 0 ? parsed.amount : prev.amount,
+        amount: parsed.amount ? String(parsed.amount) : prev.amount,
         supplier_name: parsed.supplier_name || prev.supplier_name,
+        invoice_number: parsed.invoice_number || prev.invoice_number,
+        payment_method: parsed.payment_method || prev.payment_method,
+        category_id: parsed.category_id || prev.category_id,
         description: parsed.description || prev.description,
-        receipt_image: data?.image_name || file.name,
       }));
+
+      const score = data?.confidence_score ?? 0;
+      setOcrScore(score);
 
       if (data?.anomaly_detected || data?.needs_human_review) {
         const reasons =
           data?.anomaly_reasons?.join(", ") || "Chất lượng ảnh chưa tối ưu";
         setOcrWarning(
-          `Cảnh báo (${data?.confidence_score}%): ${reasons}. Vui lòng kiểm tra lại.`
+          `Cảnh báo (${score}%): ${reasons}. Vui lòng kiểm tra lại.`
         );
         toast.warn("Đã bóc tách dữ liệu! Hãy kiểm tra lại trước khi lưu.");
       } else {
-        toast.success(`Quét thành công! Độ tin cậy ${data?.confidence_score}%`);
+        toast.success(`Quét thành công! Độ tin cậy ${score}%`);
       }
     } catch (error) {
       toast.error(error.response?.data?.message || "Không thể phân tích ảnh này.");
@@ -411,7 +426,7 @@ export default function ExpensesPage() {
                     </td>
                     <td>
                       <span
-                        className={`status-badge status-${item.status.toLowerCase()}`}
+                        className={`status-badge status-${item.status?.toLowerCase() || "confirmed"}`}
                       >
                         {item.status === "CONFIRMED"
                           ? "Đã xác nhận"
@@ -470,7 +485,7 @@ export default function ExpensesPage() {
                     <span className="mobile-card-date">{item.expense_date}</span>
                   </div>
                   <span
-                    className={`status-badge status-${item.status.toLowerCase()}`}
+                    className={`status-badge status-${item.status?.toLowerCase() || "confirmed"}`}
                   >
                     {item.status === "CONFIRMED"
                       ? "Đã xác nhận"
@@ -526,7 +541,7 @@ export default function ExpensesPage() {
           )}
         </div>
 
-        {/* Thanh Phân Trang (Pagination Controls) */}
+        {/* Thanh Phân Trang */}
         {!loading && pagination.total_items > 0 && (
           <div className="pagination-wrapper">
             <div className="pagination-info">
@@ -565,7 +580,6 @@ export default function ExpensesPage() {
                   <ChevronLeft size={16} />
                 </button>
 
-                {/* Các số trang cho Desktop */}
                 <div className="desktop-page-numbers">
                   {Array.from({ length: pagination.total_pages }, (_, i) => i + 1)
                     .filter((p) => {
@@ -593,7 +607,6 @@ export default function ExpensesPage() {
                     ))}
                 </div>
 
-                {/* Chỉ số trang rút gọn cho Điện thoại */}
                 <span className="mobile-page-indicator">
                   {pagination.current_page} / {pagination.total_pages}
                 </span>
@@ -615,7 +628,7 @@ export default function ExpensesPage() {
       {/* Modal Ghi nhận / Sửa chi phí */}
       {isModalOpen && (
         <div className="modal-overlay">
-          <div className="modal-box">
+          <div className="modal-box" style={{ maxWidth: "650px", width: "100%" }}>
             <div className="modal-top-header">
               <h3>
                 {editingId ? "Chỉnh Sửa Khoản Chi" : "Ghi Nhận Khoản Chi Mới"}
@@ -644,17 +657,17 @@ export default function ExpensesPage() {
                 {isAnalyzing ? (
                   <div className="ocr-status-loading">
                     <LoaderCircle className="spin" size={18} />
-                    <span>AI đang phân tích hóa đơn...</span>
+                    <span>AI đang tiền xử lý ảnh & bóc tách chứng từ...</span>
                   </div>
                 ) : previewUrl ? (
                   <div className="ocr-status-preview">
                     <img src={previewUrl} alt="Receipt" />
-                    <span>{selectedFile?.name} (Bấm để đổi ảnh)</span>
+                    <span>{selectedFile?.name} (Bấm để đổi ảnh khác)</span>
                   </div>
                 ) : (
                   <div className="ocr-status-idle">
                     <UploadCloud size={18} color="#2563eb" />
-                    <span>Tải ảnh hóa đơn để quét OCR tự động</span>
+                    <span>Tải ảnh hóa đơn / chứng từ để quét OCR tự động</span>
                   </div>
                 )}
               </div>
@@ -665,29 +678,59 @@ export default function ExpensesPage() {
                   <span>{ocrWarning}</span>
                 </div>
               )}
+
+              {ocrScore !== null && !ocrWarning && (
+                <div
+                  style={{
+                    marginTop: "8px",
+                    fontSize: "12px",
+                    color: "#16a34a",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "5px",
+                  }}
+                >
+                  <span>✓ Bóc tách thành công (Độ tin cậy OCR: {ocrScore}%)</span>
+                </div>
+              )}
             </div>
 
             <form onSubmit={handleSubmit} className="modal-form">
-              <div className="form-group">
-                <label>Danh mục chi phí *</label>
-                <select
-                  value={formData.category_id}
-                  onChange={(e) =>
-                    setFormData({ ...formData, category_id: e.target.value })
-                  }
-                  required
-                >
-                  <option value="">-- Chọn danh mục --</option>
-                  {categories.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.name}
-                    </option>
-                  ))}
-                </select>
+              {/* Hàng 1: Danh mục & Số hóa đơn */}
+              <div className="form-row" style={{ display: "flex", gap: "12px" }}>
+                <div className="form-group" style={{ flex: 1 }}>
+                  <label>Danh mục chi phí *</label>
+                  <select
+                    value={formData.category_id}
+                    onChange={(e) =>
+                      setFormData({ ...formData, category_id: e.target.value })
+                    }
+                    required
+                  >
+                    <option value="">-- Chọn danh mục --</option>
+                    {categories.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="form-group" style={{ flex: 1 }}>
+                  <label>Mã hóa đơn / Số chứng từ</label>
+                  <input
+                    type="text"
+                    placeholder="VD: HĐ00293, INV-2026..."
+                    value={formData.invoice_number}
+                    onChange={(e) =>
+                      setFormData({ ...formData, invoice_number: e.target.value })
+                    }
+                  />
+                </div>
               </div>
 
-              <div className="form-row">
-                <div className="form-group flex-1">
+              {/* Hàng 2: Ngày phát sinh & Phương thức thanh toán */}
+              <div className="form-row" style={{ display: "flex", gap: "12px" }}>
+                <div className="form-group" style={{ flex: 1 }}>
                   <label>Ngày phát sinh *</label>
                   <input
                     type="date"
@@ -698,8 +741,25 @@ export default function ExpensesPage() {
                     required
                   />
                 </div>
-                <div className="form-group flex-1">
-                  <label>Số tiền (VNĐ) *</label>
+                <div className="form-group" style={{ flex: 1 }}>
+                  <label>Phương thức thanh toán</label>
+                  <select
+                    value={formData.payment_method}
+                    onChange={(e) =>
+                      setFormData({ ...formData, payment_method: e.target.value })
+                    }
+                  >
+                    <option value="TIỀN MẶT">Tiền mặt</option>
+                    <option value="CHUYỂN KHOẢN">Chuyển khoản ngân hàng</option>
+                    <option value="THẺ">Thẻ quẹt POS</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Hàng 3: Số tiền & Nhà cung cấp */}
+              <div className="form-row" style={{ display: "flex", gap: "12px" }}>
+                <div className="form-group" style={{ flex: 1 }}>
+                  <label>Số tiền thanh toán (VNĐ) *</label>
                   <input
                     type="number"
                     min="0"
@@ -712,25 +772,25 @@ export default function ExpensesPage() {
                     required
                   />
                 </div>
+                <div className="form-group" style={{ flex: 1 }}>
+                  <label>Nhà cung cấp / Nơi bán</label>
+                  <input
+                    type="text"
+                    placeholder="Ví dụ: Bách Hóa Xanh, NPP Minh Anh..."
+                    value={formData.supplier_name}
+                    onChange={(e) =>
+                      setFormData({ ...formData, supplier_name: e.target.value })
+                    }
+                  />
+                </div>
               </div>
 
+              {/* Hàng 4: Mô tả chi tiết */}
               <div className="form-group">
-                <label>Nhà cung cấp / Nơi bán</label>
-                <input
-                  type="text"
-                  placeholder="Ví dụ: Cửa hàng tiện lợi, Tiệm tạp hóa..."
-                  value={formData.supplier_name}
-                  onChange={(e) =>
-                    setFormData({ ...formData, supplier_name: e.target.value })
-                  }
-                />
-              </div>
-
-              <div className="form-group">
-                <label>Mô tả chi tiết</label>
+                <label>Mô tả chi tiết / Mục đích chi</label>
                 <textarea
-                  rows="3"
-                  placeholder="Ghi chú thêm về khoản chi..."
+                  rows="2"
+                  placeholder="Ghi chú thêm về nội dung chứng từ..."
                   value={formData.description}
                   onChange={(e) =>
                     setFormData({ ...formData, description: e.target.value })
@@ -738,7 +798,15 @@ export default function ExpensesPage() {
                 />
               </div>
 
-              <div className="modal-actions">
+              <div
+                className="modal-actions"
+                style={{
+                  display: "flex",
+                  justifyContent: "flex-end",
+                  gap: "8px",
+                  marginTop: "16px",
+                }}
+              >
                 <button
                   type="button"
                   className="btn-secondary"
@@ -752,10 +820,10 @@ export default function ExpensesPage() {
                   disabled={isSubmitting || isAnalyzing}
                 >
                   {isSubmitting
-                    ? "Đang lưu..."
+                    ? "Đang ghi sổ..."
                     : editingId
                     ? "Cập nhật"
-                    : "Lưu khoản chi"}
+                    : "Lưu vào sổ cái chi phí"}
                 </button>
               </div>
             </form>

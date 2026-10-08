@@ -1,94 +1,132 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-    <meta charset="UTF-8">
-    <title>Hóa Đơn Siêu Nét - Tối Ưu OCR</title>
-    <style>
-        body { font-family: Arial, Helvetica, sans-serif; background: #ffffff; color: #000000; padding: 40px; display: flex; justify-content: center; margin: 0; }
-        .receipt-box { width: 420px; padding: 30px; border: 2px solid #000; background: #fff; box-shadow: none; }
-        .text-center { text-align: center; }
-        .text-right { text-align: right; }
-        .text-left { text-align: left; }
-        .bold { font-weight: bold; }
-        h2 { margin: 0 0 5px 0; font-size: 26px; text-transform: uppercase; letter-spacing: 1px; }
-        p { margin: 6px 0; font-size: 16px; }
-        .divider { border-bottom: 2px dashed #000; margin: 18px 0; }
-        table { width: 100%; border-collapse: collapse; margin-bottom: 15px; }
-        th, td { padding: 10px 0; font-size: 16px; }
-        th { border-bottom: 1px solid #000; text-transform: uppercase; font-size: 14px; }
-        .total-section { font-size: 24px; font-weight: bold; padding-top: 10px; display: flex; justify-content: space-between; align-items: center; }
-    </style>
+  <meta charset="UTF-8">
+  <title>Tạo Hóa Đơn Chuẩn Test OCR > 96%</title>
+  <style>
+    body { font-family: -apple-system, sans-serif; background: #f8fafc; padding: 20px; text-align: center; }
+    .card { background: #fff; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); width: 500px; margin: 0 auto; }
+    canvas { border: 1px solid #cbd5e1; width: 100%; height: auto; display: block; margin: 15px 0; }
+    button { background: #16a34a; color: #fff; border: none; padding: 12px 24px; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 16px; }
+    button:hover { background: #15803d; }
+  </style>
 </head>
 <body>
-    <div class="receipt-box">
-        <div class="text-center">
-            <h2>CỬA HÀNG BIZBOOK</h2>
-            <p>Số 1, Võ Văn Ngân, TP. Thủ Đức</p>
-            <!-- Định dạng SĐT có dấu gạch ngang để Regex không bắt nhầm thành số tiền -->
-            <p>SĐT: 028-3812-3456</p>
-            <div class="divider"></div>
-            <p class="bold" style="font-size: 20px;">HÓA ĐƠN BÁN LẺ</p>
-            <p>Ngày: 28/09/2026 - Giờ: 10:15</p>
-            <p>Mã HĐ: INV-20260928</p>
-        </div>
-        
-        <div class="divider"></div>
-        
-        <table>
-            <thead>
-                <tr>
-                    <th class="text-left">Sản phẩm</th>
-                    <th class="text-center">SL</th>
-                    <th class="text-right">Đơn giá</th>
-                    <th class="text-right">Thành tiền</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td>Mực in Brother</td>
-                    <td class="text-center">2</td>
-                    <td class="text-right">450.000</td>
-                    <td class="text-right">900.000</td>
-                </tr>
-                <tr>
-                    <td>Giấy A4 Double A</td>
-                    <td class="text-center">5</td>
-                    <td class="text-right">75.000</td>
-                    <td class="text-right">375.000</td>
-                </tr>
-                <tr>
-                    <td>Bút bi Thiên Long</td>
-                    <td class="text-center">10</td>
-                    <td class="text-right">5.000</td>
-                    <td class="text-right">50.000</td>
-                </tr>
-            </tbody>
-        </table>
-        
-        <div class="divider"></div>
-        
-        <div style="display: flex; justify-content: space-between; font-size: 16px; margin-bottom: 8px;">
-            <span>Tổng tiền hàng:</span>
-            <span>1.325.000</span>
-        </div>
-        <div style="display: flex; justify-content: space-between; font-size: 16px; margin-bottom: 8px;">
-            <span>Chiết khấu:</span>
-            <span>0</span>
-        </div>
-        
-        <div class="divider"></div>
-        
-        <div class="total-section">
-            <span>TỔNG CỘNG:</span>
-            <span>1.325.000 VNĐ</span>
-        </div>
-        
-        <div class="divider"></div>
-        
-        <div class="text-center">
-            <p>Cảm ơn quý khách!</p>
-            <p>Hẹn gặp lại</p>
-        </div>
-    </div>
+  <div class="card">
+    <h3 style="color:#16a34a; margin:0;">HÓA ĐƠN CHUẨN ĐỘ TIN CẬY > 96%</h3>
+    <p style="font-size: 13px; color: #64748b;">Độ phân giải siêu cao (1200x1800), chữ to không chân, khoảng cách ký tự chuẩn</p>
+    <canvas id="canvasHighAcc" width="1200" height="1800"></canvas>
+    <button onclick="downloadImage()">Tải hoa_don_chuan_96.png</button>
+  </div>
+
+  <script>
+    const canvas = document.getElementById("canvasHighAcc");
+    const ctx = canvas.getContext("2d");
+    const w = canvas.width;
+    const h = canvas.height;
+
+    // Nền trắng tinh không nhiễu
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, w, h);
+
+    ctx.fillStyle = "#000000";
+    ctx.textBaseline = "middle";
+
+    // 1. Header (Font chữ lớn, rõ nét)
+    ctx.textAlign = "center";
+    ctx.font = "bold 52px Arial";
+    ctx.fillText("CÔNG TY CỔ PHẦN PHÚC LONG", w / 2, 100);
+    
+    ctx.font = "36px Arial";
+    ctx.fillText("Chi nhánh: Quận 1, TP Hồ Chí Minh", w / 2, 170);
+
+    ctx.font = "bold 44px Arial";
+    ctx.fillText("HÓA ĐƠN THANH TOÁN", w / 2, 250);
+
+    // Đường kẻ phân cách
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.moveTo(80, 310); ctx.lineTo(w - 80, 310);
+    ctx.stroke();
+
+    // 2. Thông tin chứng từ
+    ctx.textAlign = "left";
+    ctx.font = "bold 36px 'Courier New', monospace";
+    ctx.fillText("Số HĐ: INV-2026-8869", 100, 380);
+    ctx.fillText("Ngày: 26/09/2026", 100, 450);
+    ctx.fillText("Phương thức: Tiền mặt", 100, 520);
+    ctx.fillText("Thu ngân: Nguyễn Văn A", 100, 590);
+
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(80, 650); ctx.lineTo(w - 80, 650);
+    ctx.stroke();
+
+    // 3. Tiêu đề bảng món
+    ctx.font = "bold 36px Arial";
+    ctx.fillText("Tên mặt hàng", 100, 710);
+    ctx.fillText("SL", 720, 710);
+    ctx.fillText("Thành tiền", 900, 710);
+
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(80, 750); ctx.lineTo(w - 80, 750);
+    ctx.stroke();
+
+    // 4. Danh sách món (Chữ to, khoảng cách dòng thoáng)
+    const items = [
+      ["Trà Sữa Phúc Long", "02", "110000"],
+      ["Trà Đào Cam Sả", "01", "60000"],
+      ["Bánh Mì Bơ Tỏi", "01", "35000"],
+      ["Cà Phê Sữa Đá", "01", "45000"]
+    ];
+
+    let y = 820;
+    ctx.font = "34px Arial";
+    items.forEach(row => {
+      ctx.fillText(row[0], 100, y);
+      ctx.fillText(row[1], 730, y);
+      ctx.fillText(row[2], 910, y);
+      y += 90;
+    });
+
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.moveTo(80, y + 20); ctx.lineTo(w - 80, y + 20);
+    ctx.stroke();
+
+    // 5. Tổng kết thanh toán (Từ khóa rõ ràng cho Regex)
+    y += 110;
+    ctx.font = "bold 40px Arial";
+    ctx.fillText("Tổng tiền hàng:", 100, y);
+    ctx.fillText("250000", 910, y);
+
+    y += 85;
+    ctx.font = "36px Arial";
+    ctx.fillText("Thuế VAT 8%:", 100, y);
+    ctx.fillText("20000", 930, y);
+
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.moveTo(80, y + 50); ctx.lineTo(w - 80, y + 50);
+    ctx.stroke();
+
+    y += 140;
+    ctx.font = "bold 56px Arial";
+    ctx.fillText("TỔNG CỘNG:", 100, y);
+    ctx.fillText("270000 VNĐ", 780, y);
+
+    // 6. Chân trang
+    ctx.textAlign = "center";
+    ctx.font = "italic 34px Arial";
+    ctx.fillText("Cảm ơn Quý Khách và Hẹn Gặp Lại!", w / 2, y + 180);
+
+    function downloadImage() {
+      const link = document.createElement("a");
+      link.download = "hoa_don_chuan_96.png";
+      link.href = canvas.toDataURL("image/png");
+      link.click();
+    }
+  </script>
 </body>
 </html>

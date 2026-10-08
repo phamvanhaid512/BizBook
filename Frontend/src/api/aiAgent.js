@@ -5,7 +5,13 @@ const aiAgentApi = {
   chat: (data) => {
     return axiosClient.post("/ai-agents/chat/", data);
   },
-
+  voiceChat: (formData) => {
+    return axiosClient.post("/ai-agents/voice-chat/", formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    });
+  },
   // 2. Gửi ảnh tài liệu / hóa đơn phân tích OCR & kiểm định bất thường
   uploadOcrDocument: (formData) => {
     return axiosClient.post("/documents/analyze/", formData, {
