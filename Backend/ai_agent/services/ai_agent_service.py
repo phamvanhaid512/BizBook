@@ -8,17 +8,21 @@ from ..serializers import (
     CreateSessionRequestSerializer,
 )
 from ..context_builder import ContextBuilder
+from .voice_service import VoiceService
 
 
-class AiAgentService():
+class AiAgentService(BaseService):
     def __init__(self, intent_router=None, data_analysis_agent=None, business_advisor_agent=None):
-        super().__init__()
-        self.session_repository = ChatSessionRepository()
+        session_repo = ChatSessionRepository()
+        super().__init__(repository=session_repo, serializer_class=ChatSessionSerializer)
+        
+        self.session_repository = session_repo
         self.message_repository = ChatMessageRepository()
         self.context_builder = ContextBuilder()
         self.intent_router = intent_router
         self.data_analysis_agent = data_analysis_agent
         self.business_advisor_agent = business_advisor_agent
+        self.voice_service = VoiceService()
 
     def create_session(self, user, data):
         serializer = CreateSessionRequestSerializer(data=data)
@@ -124,6 +128,57 @@ class AiAgentService():
                 "assistant_message": ChatMessageSerializer(assistant_message).data,
             },
         }
+
+    def voice_chat(self, user, audio_file, session_id=None):
+        """
+        Xử lý Voice Agent: Speech-to-Text -> Chat Pipeline -> Text-to-Speech
+        """
+        try:
+            # 1. Speech-to-Text qua Whisper
+            user_text = self.voice_service.speech_to_text(audio_file)
+            if not user_text:
+                return {
+                    "success": False,
+                    "message": "Không thể nhận diện giọng nói, vui lòng thử lại.",
+                    "data": None,
+                }
+
+            # 2. Tái sử dụng luồng chat hiện tại
+            chat_data = {
+                "message": user_text,
+                "session_id": session_id,
+            }
+            chat_result = self.chat(user=user, data=chat_data)
+
+            if not chat_result.get("success"):
+                return chat_result
+
+            # 3. Trích xuất phản hồi text của assistant từ chat_result
+            data = chat_result.get("data", {})
+            assistant_message_data = data.get("assistant_message", {})
+            assistant_reply_text = assistant_message_data.get("content", "")
+
+            # 4. Text-to-Speech tạo âm thanh base64
+            audio_url = ""
+            if assistant_reply_text:
+                audio_url = self.voice_service.text_to_speech(assistant_reply_text)
+
+            # 5. Bổ sung audio_url và user_text vào data trả về
+            data["user_text"] = user_text
+            data["audio_url"] = audio_url
+
+            return {
+                "success": True,
+                "message": "Xử lý giọng nói thành công.",
+                "data": data,
+            }
+
+        except Exception as e:
+            return {
+                "success": False,
+                "message": f"Lỗi hệ thống khi xử lý giọng nói: {str(e)}",
+                "data": None,
+            }
 
     @staticmethod
     def _find_previous_intent(messages):

@@ -8,6 +8,15 @@
   padding: 0;
 }
 
+.input-error {
+  border-color: #e11d48 !important;
+  background-color: #fff1f2;
+}
+
+.error-message {
+  display: block;
+  text-align: left;
+}
 .welcome-card {
   width: 100%;
   max-width: 480px;

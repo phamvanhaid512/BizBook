@@ -13,7 +13,7 @@ function Sidebar() {
     { path: "/customers", label: "Khách hàng", icon: "👥" },
     { path: "/orders", label: "Đơn hàng", icon: "🧾" },
     { path: "/expenses", label: "Chi phí", icon: "💸" },
-    { path: "/business-tables", label: "Bàn / QR", icon: "📱" },
+    // { path: "/business-tables", label: "Bàn / QR", icon: "📱" },
     { path: "/mining", label: "Data Mining", icon: "⛏️" },
     { path: "/inventory/", label: "Inventory", icon: "🤖" },
   ];

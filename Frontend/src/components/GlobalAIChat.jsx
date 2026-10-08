@@ -9,6 +9,9 @@ import {
   SendHorizontal,
   Sparkles,
   X,
+  Mic,
+  Square,
+  Volume2,
 } from "lucide-react";
 import { toast } from "react-toastify";
 import aiAgentApi from "../api/aiAgent";
@@ -25,7 +28,7 @@ const welcomeMessage = {
   id: "welcome-message",
   role: "assistant",
   content:
-    "Chào bạn! Tôi là Trợ lý AI Cố vấn Kinh doanh BizBook. Bạn có thể hỏi về Doanh thu, Chi phí, Lợi nhuận, Phân tích món bán chạy hoặc đính kèm ảnh hóa đơn để kiểm định OCR.",
+    "Chào bạn! Tôi là Trợ lý AI Cố vấn Kinh doanh BizBook. Bạn có thể hỏi bằng văn bản hoặc bấm Micro để nói về Doanh thu, Chi phí, Tồn kho hoặc gửi hóa đơn kiểm định OCR.",
 };
 
 export default function GlobalAIChat() {
@@ -40,21 +43,27 @@ export default function GlobalAIChat() {
   const [typingMessageId, setTypingMessageId] = useState(null);
   const [currentSuggestions, setCurrentSuggestions] = useState(defaultPrompts);
 
+  // Trạng thái đàm thoại giọng nói
+  const [isRecording, setIsRecording] = useState(false);
+  const [isPlayingAudio, setIsPlayingAudio] = useState(false);
+
   const fileInputRef = useRef(null);
   const chatEndRef = useRef(null);
   const typingTimerRef = useRef(null);
+  const recognitionRef = useRef(null);
+  const audioPlayerRef = useRef(null);
 
-  // Tự động cuộn xuống cuối khi có tin nhắn mới hoặc đang gõ chữ
+  // Tự động cuộn xuống đáy khi có nội dung mới
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isSending, isTyping]);
 
-  // Dọn dẹp bộ đếm thời gian khi unmount
+  // Hủy tiến trình timer và âm thanh khi rời khỏi component
   useEffect(() => {
     return () => {
-      if (typingTimerRef.current) {
-        clearInterval(typingTimerRef.current);
-      }
+      if (typingTimerRef.current) clearInterval(typingTimerRef.current);
+      if (audioPlayerRef.current) audioPlayerRef.current.pause();
+      if (recognitionRef.current) recognitionRef.current.abort();
     };
   }, []);
 
@@ -76,29 +85,26 @@ export default function GlobalAIChat() {
       return;
     }
 
-    if (previewUrl) {
-      URL.revokeObjectURL(previewUrl);
-    }
+    if (previewUrl) URL.revokeObjectURL(previewUrl);
 
     setSelectedFile(file);
     setPreviewUrl(URL.createObjectURL(file));
   };
 
   const removeFile = () => {
-    if (previewUrl) {
-      URL.revokeObjectURL(previewUrl);
-    }
+    if (previewUrl) URL.revokeObjectURL(previewUrl);
     setSelectedFile(null);
     setPreviewUrl("");
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-    }
+    if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
   const startNewConversation = () => {
-    if (typingTimerRef.current) {
-      clearInterval(typingTimerRef.current);
-    }
+    if (typingTimerRef.current) clearInterval(typingTimerRef.current);
+    if (audioPlayerRef.current) audioPlayerRef.current.pause();
+    if (recognitionRef.current) recognitionRef.current.abort();
+
+    setIsPlayingAudio(false);
+    setIsRecording(false);
     setIsTyping(false);
     setTypingMessageId(null);
     setSessionId(null);
@@ -114,13 +120,11 @@ export default function GlobalAIChat() {
     ]);
   };
 
-  // Hàm tạo hiệu ứng gõ từng ký tự chân thực (Typing Effect)
- // Hàm tạo hiệu ứng gõ từng ký tự chậm và chân thực
+  // Hiệu ứng gõ từng ký tự chân thực
   const streamTypingEffect = (fullText, messageId, metadata = {}) => {
     setIsTyping(true);
     setTypingMessageId(messageId);
 
-    // 1. Tạo tin nhắn rỗng của Assistant trước
     setMessages((prev) => [
       ...prev,
       {
@@ -134,10 +138,9 @@ export default function GlobalAIChat() {
     let currentIndex = 0;
     const textLength = fullText.length;
 
-    // Tốc độ: 35ms cho mỗi 1 ký tự (chậm và mượt mà hơn)
     typingTimerRef.current = setInterval(() => {
       if (currentIndex < textLength) {
-        currentIndex += 1; // Chỉ nhảy đúng 1 ký tự
+        currentIndex += 1;
         const currentSlice = fullText.slice(0, currentIndex);
 
         setMessages((prev) =>
@@ -150,12 +153,142 @@ export default function GlobalAIChat() {
         setIsTyping(false);
         setTypingMessageId(null);
       }
-    }, 35); // <-- Chỉnh từ 16ms lên 35ms để gõ chậm hơn
+    }, 30);
   };
+
+  // Phát âm thanh phản hồi từ AI
+  const playAgentAudio = (audioUrl) => {
+    if (!audioUrl) return;
+    try {
+      if (audioPlayerRef.current) {
+        audioPlayerRef.current.pause();
+      }
+      const audio = new Audio(audioUrl);
+      audioPlayerRef.current = audio;
+      setIsPlayingAudio(true);
+
+      audio.onended = () => setIsPlayingAudio(false);
+      audio.onerror = () => setIsPlayingAudio(false);
+
+      audio.play().catch((err) => {
+        console.warn("Trình duyệt chặn autoplay âm thanh:", err);
+        setIsPlayingAudio(false);
+      });
+    } catch (e) {
+      console.error("Lỗi phát audio:", e);
+      setIsPlayingAudio(false);
+    }
+  };
+
+  // 1. BẮT ĐẦU NHẬN DIỆN GIỌNG NÓI TỐC ĐỘ CAO (WEB SPEECH API)
+  const startRecording = () => {
+    if (isSending || isTyping) return;
+
+    const SpeechRecognition =
+      window.SpeechRecognition || window.webkitSpeechRecognition;
+
+    if (!SpeechRecognition) {
+      toast.error("Trình duyệt không hỗ trợ Web Speech API. Vui lòng dùng Chrome hoặc Edge.");
+      return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.lang = "vi-VN";
+    recognition.continuous = false;
+    recognition.interimResults = false;
+
+    recognition.onstart = () => {
+      setIsRecording(true);
+    };
+
+    recognition.onresult = (event) => {
+      const transcript = event.results[0]?.[0]?.transcript;
+      if (transcript && transcript.trim()) {
+        sendVoiceText(transcript.trim());
+      }
+    };
+
+    recognition.onerror = (event) => {
+      console.error("Speech Recognition Error:", event.error);
+      setIsRecording(false);
+      if (event.error === "not-allowed") {
+        toast.error("Vui lòng cấp quyền Microphone trên trình duyệt.");
+      }
+    };
+
+    recognition.onend = () => {
+      setIsRecording(false);
+    };
+
+    recognitionRef.current = recognition;
+    try {
+      recognition.start();
+    } catch (err) {
+      console.error("Không thể khởi động micro:", err);
+    }
+  };
+
+  // 2. DỪNG MICRO
+  const stopRecording = () => {
+    if (recognitionRef.current && isRecording) {
+      recognitionRef.current.stop();
+      setIsRecording(false);
+    }
+  };
+
+  // 3. GỬI TEXT ĐÃ NHẬN DIỆN VỀ SERVER VÀ PHÁT AUDIO
+  const sendVoiceText = async (recognizedText) => {
+    setIsSending(true);
+
+    const userMessage = {
+      id: `user-voice-${Date.now()}`,
+      role: "user",
+      content: `🎙 ${recognizedText}`,
+    };
+    setMessages((prev) => [...prev, userMessage]);
+
+    try {
+      const payload = {
+        text: recognizedText,
+        session_id: sessionId,
+      };
+
+      const res = await aiAgentApi.voiceChat(payload);
+      const apiData = res.data?.data || {};
+
+      if (apiData.session?.id) {
+        setSessionId(apiData.session.id);
+      }
+
+      const assistantMsg = apiData.assistant_message || {};
+      const fullReply = assistantMsg.content || "Tôi đã nhận được lệnh của bạn.";
+      const audioUrl = apiData.audio_url;
+
+      const newSuggestions = assistantMsg.metadata?.suggested_questions || defaultPrompts;
+      setCurrentSuggestions(newSuggestions);
+      setIsSending(false);
+
+      if (audioUrl) {
+        playAgentAudio(audioUrl);
+      }
+
+      streamTypingEffect(
+        fullReply,
+        `assistant-${assistantMsg.id || Date.now()}`,
+        assistantMsg.metadata
+      );
+    } catch (error) {
+      const errorMsg =
+        error.response?.data?.message || "Không thể kết nối với dịch vụ trợ lý ảo.";
+      toast.error(errorMsg);
+      setIsSending(false);
+    }
+  };
+
+  // GỬI TIN NHẮN TEXT HOẶC ẢNH OCR
   const sendMessage = async (customPrompt = null) => {
     const content = (typeof customPrompt === "string" ? customPrompt : message).trim();
-    console.log("content",content)
-    if ((!content && !selectedFile) || isSending || isTyping) {
+    if ((!content && !selectedFile) || isSending || isTyping || isRecording) {
       return;
     }
 
@@ -172,16 +305,11 @@ export default function GlobalAIChat() {
 
     setMessages((prev) => [...prev, userMessage]);
     setMessage("");
-    setSelectedFile(null);
-    setPreviewUrl("");
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-    }
-
+    removeFile();
     setIsSending(true);
 
     try {
-      // 1. LUỒNG TẢI VÀ PHÂN TÍCH OCR HÓA ĐƠN
+      // 1. Phân tích ảnh hóa đơn OCR
       if (uploadedFile) {
         const formData = new FormData();
         formData.append("file", uploadedFile);
@@ -203,21 +331,22 @@ export default function GlobalAIChat() {
           replyText += `✅ **Đánh giá:** Ảnh rõ nét, thông tin hợp lệ để ghi nhận chi phí.`;
         }
 
-        // Tạo độ trễ tự nhiên (600ms)
-        await new Promise((resolve) => setTimeout(resolve, 600));
+        await new Promise((resolve) => setTimeout(resolve, 500));
         setIsSending(false);
-
         toast.success("Phân tích ảnh hóa đơn thành công!");
-        streamTypingEffect(replyText, `assistant-ocr-${Date.now()}`, { isOcr: true, ocrData: apiData });
+        streamTypingEffect(replyText, `assistant-ocr-${Date.now()}`, {
+          isOcr: true,
+          ocrData: apiData,
+        });
         return;
       }
 
-      // 2. LUỒNG GỬI CHAT HỘI THOẠI VỚI SUB-AGENTS
+      // 2. Chat hội thoại thông thường
       const payload = {
         session_id: sessionId,
         message: content,
       };
-      
+
       const res = await aiAgentApi.chat(payload);
       const apiData = res.data?.data || {};
 
@@ -228,15 +357,15 @@ export default function GlobalAIChat() {
       const assistantMsg = apiData.assistant_message || {};
       const fullReply = assistantMsg.content || "Tôi đã nhận được thông tin.";
       const newSuggestions = assistantMsg.metadata?.suggested_questions || defaultPrompts;
-      
+
       setCurrentSuggestions(newSuggestions);
-
-      // Thêm độ trễ suy nghĩ (650ms) tạo cảm giác AI đang phân tích dữ liệu
-      await new Promise((resolve) => setTimeout(resolve, 900));
+      await new Promise((resolve) => setTimeout(resolve, 500));
       setIsSending(false);
-
-      // Chạy hiệu ứng gõ chữ cho câu trả lời
-      streamTypingEffect(fullReply, `assistant-${assistantMsg.id || Date.now()}`, assistantMsg.metadata);
+      streamTypingEffect(
+        fullReply,
+        `assistant-${assistantMsg.id || Date.now()}`,
+        assistantMsg.metadata
+      );
     } catch (error) {
       const errorMessage =
         error.response?.data?.message || "Không thể kết nối đến máy chủ AI Agent.";
@@ -273,12 +402,31 @@ export default function GlobalAIChat() {
               <div>
                 <h3>BizBook AI Assistant</h3>
                 <p>
-                  <span className="global-ai-chat__status-dot" /> Trợ lý cố vấn sẵn sàng
+                  <span className="global-ai-chat__status-dot" />{" "}
+                  {isPlayingAudio
+                    ? "Đang phát âm thanh..."
+                    : isRecording
+                    ? "Đang lắng nghe..."
+                    : "Trợ lý cố vấn sẵn sàng"}
                 </p>
               </div>
             </div>
 
             <div className="global-ai-chat__header-actions">
+              {isPlayingAudio && (
+                <button
+                  type="button"
+                  className="global-ai-chat__audio-indicator"
+                  title="Tắt âm thanh"
+                  onClick={() => {
+                    audioPlayerRef.current?.pause();
+                    setIsPlayingAudio(false);
+                  }}
+                >
+                  <Volume2 size={18} className="animate-pulse" />
+                </button>
+              )}
+
               <button
                 type="button"
                 className="global-ai-chat__new-chat"
@@ -299,7 +447,7 @@ export default function GlobalAIChat() {
             </div>
           </header>
 
-          {/* Messages Body */}
+          {/* Danh sách tin nhắn */}
           <div className="global-ai-chat__messages">
             {messages.map((item) => {
               const isCurrentlyTypingThis = isTyping && typingMessageId === item.id;
@@ -308,7 +456,9 @@ export default function GlobalAIChat() {
                 <div
                   key={item.id}
                   className={`global-message ${
-                    item.role === "user" ? "global-message--user" : "global-message--assistant"
+                    item.role === "user"
+                      ? "global-message--user"
+                      : "global-message--assistant"
                   }`}
                 >
                   {item.role === "assistant" && (
@@ -337,9 +487,11 @@ export default function GlobalAIChat() {
                       </span>
                     )}
 
-                    <div className="global-message__text" style={{ whiteSpace: "pre-line" }}>
+                    <div
+                      className="global-message__text"
+                      style={{ whiteSpace: "pre-line" }}
+                    >
                       {item.content}
-                      {/* Con trỏ nhấp nháy mô phỏng gõ chữ */}
                       {isCurrentlyTypingThis && (
                         <span className="global-ai-chat__cursor">|</span>
                       )}
@@ -349,7 +501,6 @@ export default function GlobalAIChat() {
               );
             })}
 
-            {/* Trạng thái AI đang tính toán / phân tích dữ liệu */}
             {isSending && (
               <div className="global-message global-message--assistant">
                 <span className="global-message__avatar">
@@ -358,7 +509,7 @@ export default function GlobalAIChat() {
                 <div className="global-message__bubble">
                   <p className="global-ai-chat__typing">
                     <LoaderCircle size={15} className="global-ai-chat__spin" />
-                    AI đang tính toán dữ liệu...
+                    AI đang tính toán và xử lý phản hồi...
                   </p>
                 </div>
               </div>
@@ -367,14 +518,14 @@ export default function GlobalAIChat() {
             <div ref={chatEndRef} />
           </div>
 
-          {/* Gợi ý câu hỏi thông minh */}
+          {/* Gợi ý câu hỏi nhanh */}
           {currentSuggestions?.length > 0 && (
             <div className="global-ai-chat__suggestions">
               {currentSuggestions.map((prompt, idx) => (
                 <button
                   type="button"
                   key={idx}
-                  disabled={isSending || isTyping}
+                  disabled={isSending || isTyping || isRecording}
                   onClick={() => sendMessage(prompt)}
                 >
                   {prompt}
@@ -383,7 +534,7 @@ export default function GlobalAIChat() {
             </div>
           )}
 
-          {/* Preview ảnh đính kèm */}
+          {/* Ảnh xem trước đính kèm */}
           {selectedFile && (
             <div className="global-ai-chat__file-preview">
               <img src={previewUrl} alt="Preview" />
@@ -394,7 +545,7 @@ export default function GlobalAIChat() {
             </div>
           )}
 
-          {/* Footer Input */}
+          {/* Thanh công cụ nhập liệu */}
           <footer className="global-ai-chat__input">
             <input
               ref={fileInputRef}
@@ -404,31 +555,55 @@ export default function GlobalAIChat() {
               onChange={handleFileChange}
             />
 
+            {/* Đính kèm ảnh */}
             <button
               type="button"
               className="global-ai-chat__attach"
               onClick={handleChooseFile}
-              disabled={isSending || isTyping}
+              disabled={isSending || isTyping || isRecording}
               title="Đính kèm hóa đơn"
             >
               <Paperclip size={19} />
             </button>
 
+            {/* Ô nhập tin nhắn */}
             <textarea
               rows={1}
               value={message}
-              disabled={isSending || isTyping}
+              disabled={isSending || isTyping || isRecording}
               onChange={(e) => setMessage(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder={isTyping ? "AI đang trả lời..." : "Hỏi về doanh thu, chi phí, món bán chạy..."}
+              placeholder={
+                isRecording
+                  ? "Đang lắng nghe giọng nói của bạn..."
+                  : isTyping
+                  ? "AI đang trả lời..."
+                  : "Nhập câu hỏi hoặc bấm Mic để nói..."
+              }
             />
 
+            {/* Nút Micro */}
+            <button
+              type="button"
+              className={`global-ai-chat__mic ${
+                isRecording ? "global-ai-chat__mic--recording" : ""
+              }`}
+              onClick={isRecording ? stopRecording : startRecording}
+              disabled={isSending || isTyping}
+              title={isRecording ? "Dừng nói" : "Nói với trợ lý"}
+            >
+              {isRecording ? <Square size={16} /> : <Mic size={18} />}
+            </button>
+
+            {/* Nút Gửi */}
             <button
               type="button"
               className="global-ai-chat__send"
               onClick={() => sendMessage()}
-              disabled={isSending || isTyping || (!message.trim() && !selectedFile)}
-              title="Gửi"
+              disabled={
+                isSending || isTyping || isRecording || (!message.trim() && !selectedFile)
+              }
+              title="Gửi tin nhắn"
             >
               {isSending ? (
                 <LoaderCircle size={18} className="global-ai-chat__spin" />
@@ -440,7 +615,7 @@ export default function GlobalAIChat() {
         </section>
       )}
 
-      {/* Nút Toggle mở Chatbot */}
+      {/* Nút mở hộp thoại Chat */}
       <button
         type="button"
         className="global-ai-chat__toggle"
