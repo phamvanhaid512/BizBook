@@ -419,17 +419,6 @@ class DataMiningService:
 
 
 
-
-
-
-
-
-
-
-
-
-
-
     # def run_forecasting(
     #     self,
     #     data,
