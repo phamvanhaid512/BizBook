@@ -40,6 +40,46 @@ class IntentRouter:
                 "du bao", "du doan", "ngay mai", "tuan toi", "sap toi", 
                 "xu huong", "uoc tinh doanh thu", "tuong lai"
             ],
+            "ORDER_COUNT_QUERY": [
+                "bao nhieu don", "so don hang", "luot mua", "so luong don", 
+                "tong don", "co bao nhieu don", "don hang hom nay", "dem don"
+            ],
+            "AOV_QUERY": [
+                "trung binh moi don", "gia tri trung binh", "aov", "moi don duoc bao nhieu",
+                "trung binh mot don", "trung binh don hang", "moi hoa don"
+            ],
+            "PEAK_HOURS_QUERY": [
+                "gio cao diem", "khung gio dong khach", "gio nao dong nhat", "khung gio vang",
+                "luc nao dong", "gio ban chay nhat", "gio vang", "tap trung dong khach"
+            ],
+            "INVENTORY_QUERY": [
+                "ton kho", "con bao nhieu", "con hang khong", "sap het hang", 
+                "con lai bao nhieu", "so luong ton", "kiem tra kho", "con bao nhieu mon"
+            ],
+            "PAYMENT_METHOD_QUERY": [
+                "thanh toan", "tien mat", "chuyen khoan", "quet ma", "qr code", 
+                "vi dien tu", "hinh thuc thanh toan", "tra bang gi"
+            ],
+            "CANCELLED_ORDERS_QUERY": [
+                "don huy", "huy bao nhieu don", "ty le huy", "don bi huy", 
+                "tra hang", "khach huy don", "that thoat don", "huy mon"
+            ],
+            "GROWTH_COMPARISON": [
+                "so voi", "tang hay giam", "tang truong", "so sanh voi", 
+                "tot hon hay kem hon", "bien dong", "tang truong thang nay"
+            ],
+            "PROFIT_MARGIN_QUERY": [
+                "ti suat loi nhuan", "ty suat", "bien loi nhuan", "phan tram lai", 
+                "lai duoc bao nhieu phan tram", "margin", "hieu qua von"
+            ],
+            "PROMOTION_SUGGESTION": [
+                "khuyen mai", "kich cau", "giam gia mon nao", "chien luoc gi", 
+                "goi y chuong trinh", "xa hang", "lam sao de tang doanh thu", "voucher"
+            ],
+            "SUMMARY_REPORT": [
+                "tong quan", "bao cao nhanh", "tinh hinh kinh doanh", "tinh hinh buon ban", 
+                "hom nay the nao", "tinh hinh hom nay", "dashboard", "tom tat"
+            ],
         }
 
     def _remove_accents(self, text: str) -> str:
